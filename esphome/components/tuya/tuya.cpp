@@ -176,7 +176,7 @@ void Tuya::handle_command_(uint8_t command, uint8_t version, const uint8_t *buff
         this->init_state_ = TuyaInitState::INIT_DONE;
         this->set_timeout("datapoint_dump", 1000, [this] { this->dump_config(); });
       }
-      this->handle_datapoint_(buffer, len);
+      this->handle_datapoints_(buffer, len);
       break;
     case TuyaCommandType::DATAPOINT_QUERY:
       break;
@@ -190,66 +190,67 @@ void Tuya::handle_command_(uint8_t command, uint8_t version, const uint8_t *buff
   }
 }
 
-void Tuya::handle_datapoint_(const uint8_t *buffer, size_t len) {
-  if (len < 2)
-    return;
+void Tuya::handle_datapoints_(const uint8_t *buffer, size_t len) {
+  while (len >= 4) {
+    TuyaDatapoint datapoint{};
+    datapoint.id = buffer[0];
+    datapoint.type = (TuyaDatapointType) buffer[1];
+    datapoint.value_uint = 0;
 
-  TuyaDatapoint datapoint{};
-  datapoint.id = buffer[0];
-  datapoint.type = (TuyaDatapointType) buffer[1];
-  datapoint.value_uint = 0;
-
-  size_t data_size = (buffer[2] << 8) + buffer[3];
-  const uint8_t *data = buffer + 4;
-  size_t data_len = len - 4;
-  if (data_size != data_len) {
-    ESP_LOGW(TAG, "invalid datapoint update");
-    return;
-  }
-
-  switch (datapoint.type) {
-    case TuyaDatapointType::BOOLEAN:
-      if (data_len != 1)
-        return;
-      datapoint.value_bool = data[0];
-      break;
-    case TuyaDatapointType::INTEGER:
-      if (data_len != 4)
-        return;
-      datapoint.value_uint =
-          (uint32_t(data[0]) << 24) | (uint32_t(data[1]) << 16) | (uint32_t(data[2]) << 8) | (uint32_t(data[3]) << 0);
-      break;
-    case TuyaDatapointType::ENUM:
-      if (data_len != 1)
-        return;
-      datapoint.value_enum = data[0];
-      break;
-    case TuyaDatapointType::BITMASK:
-      if (data_len != 2)
-        return;
-      datapoint.value_bitmask = (uint16_t(data[0]) << 8) | (uint16_t(data[1]) << 0);
-      break;
-    default:
+    size_t data_size = (buffer[2] << 8) + buffer[3];
+    const uint8_t *data = buffer + 4;
+    if (data_size > len - 4) {
+      ESP_LOGW(TAG, "invalid datapoint update");
       return;
-  }
-  ESP_LOGV(TAG, "Datapoint %u update to %u", datapoint.id, datapoint.value_uint);
-
-  // Update internal datapoints
-  bool found = false;
-  for (auto &other : this->datapoints_) {
-    if (other.id == datapoint.id) {
-      other = datapoint;
-      found = true;
     }
-  }
-  if (!found) {
-    this->datapoints_.push_back(datapoint);
-  }
 
-  // Run through listeners
-  for (auto &listener : this->listeners_)
-    if (listener.datapoint_id == datapoint.id)
-      listener.on_datapoint(datapoint);
+    switch (datapoint.type) {
+      case TuyaDatapointType::BOOLEAN:
+        if (data_size != 1)
+          break;
+        datapoint.value_bool = data[0];
+        break;
+      case TuyaDatapointType::INTEGER:
+        if (data_size != 4)
+          break;
+        datapoint.value_uint =
+            (uint32_t(data[0]) << 24) | (uint32_t(data[1]) << 16) | (uint32_t(data[2]) << 8) | (uint32_t(data[3]) << 0);
+        break;
+      case TuyaDatapointType::ENUM:
+        if (data_size != 1)
+          break;
+        datapoint.value_enum = data[0];
+        break;
+      case TuyaDatapointType::BITMASK:
+        if (data_size != 2)
+          break;
+        datapoint.value_bitmask = (uint16_t(data[0]) << 8) | (uint16_t(data[1]) << 0);
+        break;
+      default:
+        ESP_LOGW(TAG, "unknown datapoint type %u (0x%x)", datapoint.type, datapoint.type);
+    }
+    ESP_LOGV(TAG, "Datapoint %u update to %u", datapoint.id, datapoint.value_uint);
+
+    // Update internal datapoints
+    bool found = false;
+    for (auto &other : this->datapoints_) {
+      if (other.id == datapoint.id) {
+        other = datapoint;
+        found = true;
+      }
+    }
+    if (!found) {
+      this->datapoints_.push_back(datapoint);
+    }
+
+    // Run through listeners
+    for (auto &listener : this->listeners_)
+      if (listener.datapoint_id == datapoint.id)
+        listener.on_datapoint(datapoint);
+
+    len -= data_size + 4;
+    buffer = data + data_size;
+  }
 }
 
 void Tuya::send_command_(TuyaCommandType command, const uint8_t *buffer, uint16_t len) {
