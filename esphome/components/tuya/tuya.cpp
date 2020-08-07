@@ -1,6 +1,7 @@
 #include "tuya.h"
 #include "esphome/core/log.h"
 #include "esphome/core/helpers.h"
+#include "esphome/core/util.h"
 
 namespace esphome {
 namespace tuya {
@@ -8,10 +9,29 @@ namespace tuya {
 static const char *TAG = "tuya";
 
 void Tuya::setup() {
-  this->set_interval("heartbeat", 1000, [this] { this->send_empty_command_(TuyaCommandType::HEARTBEAT); });
+  this->set_interval("heartbeat", 1000, [this] { this->send_empty_command_(TuyaCommandTypeV0::HEARTBEAT); });
 }
 
 void Tuya::loop() {
+  if (this->version_ == 0) {
+    WifiState current_state = WifiState::DISCONNECTED;
+    if (network_is_connected())
+      current_state = WifiState::CONNECTED;
+#ifdef USE_MQTT
+    if ((mqtt::global_mqtt_client != nullptr) && mqtt::global_mqtt_client->is_connected())
+      current_state = WifiState::CONNECTED_DATA;
+#endif
+#ifdef USE_API
+    if ((api::global_api_server != nullptr) && api::global_api_server->is_connected())
+      current_state = WifiState::CONNECTED_DATA;
+#endif
+    if (current_state != this->wifi_state_) {
+      this->wifi_state_ = current_state;
+      uint8_t c = (uint8_t) current_state;
+      this->send_command_(TuyaCommandTypeV0::NETWORK_STATUS, &c, 1);
+      ESP_LOGV(TAG, "setting wifi state to %u", c);
+    }
+  }
   while (this->available()) {
     uint8_t c;
     this->read_byte(&c);
@@ -27,6 +47,8 @@ void Tuya::dump_config() {
     ESP_LOGCONFIG(TAG, "  If no further output is received, confirm that this is a supported Tuya device.");
     return;
   }
+  if (this->version_ == 0)
+    ESP_LOGCONFIG(TAG, "  Battery powered device detected");
   for (auto &info : this->datapoints_) {
     if (info.type == TuyaDatapointType::BOOLEAN)
       ESP_LOGCONFIG(TAG, "  Datapoint %d: switch (value: %s)", info.id, ONOFF(info.value_bool));
@@ -37,7 +59,7 @@ void Tuya::dump_config() {
     else if (info.type == TuyaDatapointType::BITMASK)
       ESP_LOGCONFIG(TAG, "  Datapoint %d: bitmask (value: %x)", info.id, info.value_bitmask);
     else
-      ESP_LOGCONFIG(TAG, "  Datapoint %d: unknown", info.id);
+      ESP_LOGCONFIG(TAG, "  Datapoint %d: unknown type (%x)", info.id, (int) info.type);
   }
   if ((this->gpio_status_ != -1) || (this->gpio_reset_ != -1)) {
     ESP_LOGCONFIG(TAG, "  GPIO Configuration: status: pin %d, reset: pin %d (not supported)", this->gpio_status_,
@@ -94,9 +116,12 @@ bool Tuya::validate_message_() {
 
   // valid message
   const uint8_t *message_data = data + 6;
-  ESP_LOGV(TAG, "Received Tuya: CMD=0x%02X VERSION=%u DATA=[%s] INIT_STATE=%u", command, version,  // NOLINT
+  ESP_LOGV(TAG, "Received Tuya: CMD=0x%02X VERSION=%u DATA=[%s] INIT_STATE=%u", command, version,
            hexencode(message_data, length).c_str(), this->init_state_);
-  this->handle_command_(command, version, message_data, length);
+  if (this->version_ == 0)
+    this->handle_command_((TuyaCommandTypeV0) command, version, message_data, length);
+  else
+    this->handle_command_((TuyaCommandTypeV3) command, version, message_data, length);
 
   // return false to reset rx buffer
   return false;
@@ -109,9 +134,27 @@ void Tuya::handle_char_(uint8_t c) {
   }
 }
 
-void Tuya::handle_command_(uint8_t command, uint8_t version, const uint8_t *buffer, size_t len) {
-  switch ((TuyaCommandType) command) {
-    case TuyaCommandType::HEARTBEAT:
+void Tuya::handle_command_(TuyaCommandTypeV0 command, uint8_t version, const uint8_t *buffer, size_t len) {
+  switch (command) {
+    case TuyaCommandTypeV0::WIFI_RESET:
+      this->send_empty_command_(TuyaCommandTypeV0::WIFI_RESET);
+      break;
+    case TuyaCommandTypeV0::WIFI_CONF:
+      ESP_LOGV(TAG, "MCU requested %s wifi mode", buffer[0] == 0 : "smartconfig", "AP");
+      this->send_empty_command_(TuyaCommandTypeV0::WIFI_CONF);
+      break;
+    case TuyaCommandTypeV0::REALTIME_REPORT:
+      this->set_timeout("datapoint_dump", 1000, [this] { this->dump_config(); });
+      this->handle_datapoints_(buffer, len);
+      break;
+    default:
+      break;
+  }
+}
+
+void Tuya::handle_command_(TuyaCommandTypeV3 command, uint8_t version, const uint8_t *buffer, size_t len) {
+  switch (command) {
+    case TuyaCommandTypeV3::HEARTBEAT:
       ESP_LOGV(TAG, "MCU Heartbeat (0x%02X)", buffer[0]);
       if (buffer[0] == 0) {
         ESP_LOGI(TAG, "MCU restarted");
@@ -119,10 +162,10 @@ void Tuya::handle_command_(uint8_t command, uint8_t version, const uint8_t *buff
       }
       if (this->init_state_ == TuyaInitState::INIT_HEARTBEAT) {
         this->init_state_ = TuyaInitState::INIT_PRODUCT;
-        this->send_empty_command_(TuyaCommandType::PRODUCT_QUERY);
+        this->send_empty_command_(TuyaCommandTypeV3::PRODUCT_QUERY);
       }
       break;
-    case TuyaCommandType::PRODUCT_QUERY: {
+    case TuyaCommandTypeV3::PRODUCT_QUERY: {
       // check it is a valid string made up of printable characters
       bool valid = true;
       for (int i = 0; i < len; i++) {
@@ -137,12 +180,19 @@ void Tuya::handle_command_(uint8_t command, uint8_t version, const uint8_t *buff
         this->product_ = R"({"p":"INVALID"})";
       }
       if (this->init_state_ == TuyaInitState::INIT_PRODUCT) {
-        this->init_state_ = TuyaInitState::INIT_CONF;
-        this->send_empty_command_(TuyaCommandType::CONF_QUERY);
+        this->version_ = version;
+        if (version == 0) {
+          this->init_state_ = TuyaInitState::INIT_DONE;
+          uint8_t c = 1;
+          this->send_command_(TuyaCommandTypeV0::NETWORK_STATUS, &c, 1);
+        } else {
+          this->init_state_ = TuyaInitState::INIT_CONF;
+          this->send_empty_command_(TuyaCommandTypeV3::CONF_QUERY);
+        }
       }
       break;
     }
-    case TuyaCommandType::CONF_QUERY: {
+    case TuyaCommandTypeV3::CONF_QUERY: {
       if (len >= 2) {
         gpio_status_ = buffer[0];
         gpio_reset_ = buffer[1];
@@ -153,36 +203,38 @@ void Tuya::handle_command_(uint8_t command, uint8_t version, const uint8_t *buff
         // Instead we just claim to be connected immediately and move on.
         uint8_t c[] = {0x04};
         this->init_state_ = TuyaInitState::INIT_WIFI;
-        this->send_command_(TuyaCommandType::WIFI_STATE, c, 1);
+        this->send_command_(TuyaCommandTypeV3::WIFI_STATE, c, 1);
       }
       break;
     }
-    case TuyaCommandType::WIFI_STATE:
+    case TuyaCommandTypeV3::WIFI_STATE:
       if (this->init_state_ == TuyaInitState::INIT_WIFI) {
         this->init_state_ = TuyaInitState::INIT_DATAPOINT;
-        this->send_empty_command_(TuyaCommandType::DATAPOINT_QUERY);
+        this->send_empty_command_(TuyaCommandTypeV3::DATAPOINT_QUERY);
       }
       break;
-    case TuyaCommandType::WIFI_RESET:
-      ESP_LOGE(TAG, "TUYA_CMD_WIFI_RESET is not handled");
+    case TuyaCommandTypeV3::WIFI_RESET:
+      ESP_LOGD(TAG, "MCU requested Wifi reset");
+      this->send_empty_command_(TuyaCommandTypeV3::WIFI_RESET);
       break;
-    case TuyaCommandType::WIFI_SELECT:
-      ESP_LOGE(TAG, "TUYA_CMD_WIFI_SELECT is not handled");
+    case TuyaCommandTypeV3::WIFI_SELECT:
+      ESP_LOGD(TAG, "MCU request %s Wifi mode", buffer[0] == 0 ? "smartconfig" : "AP");
+      this->send_empty_command_(TuyaCommandTypeV3::WIFI_SELECT);
       break;
-    case TuyaCommandType::DATAPOINT_DELIVER:
+    case TuyaCommandTypeV3::DATAPOINT_DELIVER:
       break;
-    case TuyaCommandType::DATAPOINT_REPORT:
+    case TuyaCommandTypeV3::DATAPOINT_REPORT:
       if (this->init_state_ == TuyaInitState::INIT_DATAPOINT) {
         this->init_state_ = TuyaInitState::INIT_DONE;
         this->set_timeout("datapoint_dump", 1000, [this] { this->dump_config(); });
       }
       this->handle_datapoints_(buffer, len);
       break;
-    case TuyaCommandType::DATAPOINT_QUERY:
+    case TuyaCommandTypeV3::DATAPOINT_QUERY:
       break;
-    case TuyaCommandType::WIFI_TEST: {
+    case TuyaCommandTypeV3::WIFI_TEST: {
       uint8_t c[] = {0x00, 0x00};
-      this->send_command_(TuyaCommandType::WIFI_TEST, c, 2);
+      this->send_command_(TuyaCommandTypeV3::WIFI_TEST, c, 2);
       break;
     }
     default:
@@ -253,19 +305,19 @@ void Tuya::handle_datapoints_(const uint8_t *buffer, size_t len) {
   }
 }
 
-void Tuya::send_command_(TuyaCommandType command, const uint8_t *buffer, uint16_t len) {
+void Tuya::send_command_(uint8_t command, const uint8_t *buffer, uint16_t len) {
   uint8_t len_hi = len >> 8;
   uint8_t len_lo = len >> 0;
   uint8_t version = 0;
 
-  ESP_LOGV(TAG, "Sending Tuya: CMD=0x%02X VERSION=%u DATA=[%s] INIT_STATE=%u", command, version,  // NOLINT
+  ESP_LOGV(TAG, "Sending Tuya: CMD=0x%02X VERSION=%u DATA=[%s] INIT_STATE=%u", command, version,
            hexencode(buffer, len).c_str(), this->init_state_);
 
-  this->write_array({0x55, 0xAA, version, (uint8_t) command, len_hi, len_lo});
+  this->write_array({0x55, 0xAA, version, command, len_hi, len_lo});
   if (len != 0)
     this->write_array(buffer, len);
 
-  uint8_t checksum = 0x55 + 0xAA + (uint8_t) command + len_hi + len_lo;
+  uint8_t checksum = 0x55 + 0xAA + command + len_hi + len_lo;
   for (int i = 0; i < len; i++)
     checksum += buffer[i];
   this->write_byte(checksum);
@@ -310,7 +362,7 @@ void Tuya::set_datapoint_value(TuyaDatapoint datapoint) {
   buffer.push_back(data.size() >> 8);
   buffer.push_back(data.size() >> 0);
   buffer.insert(buffer.end(), data.begin(), data.end());
-  this->send_command_(TuyaCommandType::DATAPOINT_DELIVER, buffer.data(), buffer.size());
+  this->send_command_(TuyaCommandTypeV3::DATAPOINT_DELIVER, buffer.data(), buffer.size());
 }
 
 void Tuya::register_listener(uint8_t datapoint_id, const std::function<void(TuyaDatapoint)> &func) {

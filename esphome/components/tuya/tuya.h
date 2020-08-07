@@ -32,7 +32,32 @@ struct TuyaDatapointListener {
   std::function<void(TuyaDatapoint)> on_datapoint;
 };
 
-enum class TuyaCommandType : uint8_t {
+enum class WifiState : uint8_t {
+  DISCONNECTED = 1,
+  CONNECTED = 3,
+  CONNECTED_DATA = 4,
+};
+
+enum class TuyaCommandTypeV0 : uint8_t {
+  HEARTBEAT = 0x00,
+  PRODUCT_QUERY = 0x01,
+  NETWORK_STATUS = 0x02,
+  WIFI_RESET = 0x03,
+  WIFI_CONF = 0x04,
+  REALTIME_REPORT = 0x05,
+  LOCAL_TIME = 0x06,
+  WIFI_TEST = 0x07,
+  RECORD_REPORT = 0x08,
+  SEND_COMMAND = 0x09,
+  MODULE_FW_UPGRADE = 0x0a,
+  SIGNAL_STRENGTH = 0x0b,
+  MCU_FW_UPGRADE = 0x0c,
+  MCU_FW_SIZE = 0x0d,
+  MCU_FW_SEND = 0x0e,
+  GET_DP_CACHE = 0x10,
+};
+
+enum class TuyaCommandTypeV3 : uint8_t {
   HEARTBEAT = 0x00,
   PRODUCT_QUERY = 0x01,
   CONF_QUERY = 0x02,
@@ -68,14 +93,24 @@ class Tuya : public Component, public uart::UARTDevice {
   void handle_datapoints_(const uint8_t *buffer, size_t len);
   bool validate_message_();
 
-  void handle_command_(uint8_t command, uint8_t version, const uint8_t *buffer, size_t len);
-  void send_command_(TuyaCommandType command, const uint8_t *buffer, uint16_t len);
-  void send_empty_command_(TuyaCommandType command) { this->send_command_(command, nullptr, 0); }
+  void handle_command_(TuyaCommandTypeV0 command, uint8_t version, const uint8_t *buffer, size_t len);
+  void handle_command_(TuyaCommandTypeV3 command, uint8_t version, const uint8_t *buffer, size_t len);
+  void send_command_(uint8_t command, const uint8_t *buffer, uint16_t len);
+  void send_command_(TuyaCommandTypeV0 command, const uint8_t *buffer, uint16_t len) {
+    this->send_command_((uint8_t) command, buffer, len);
+  }
+  void send_command_(TuyaCommandTypeV3 command, const uint8_t *buffer, uint16_t len) {
+    this->send_command_((uint8_t) command, buffer, len);
+  }
+  void send_empty_command_(TuyaCommandTypeV0 command) { this->send_command_(command, nullptr, 0); }
+  void send_empty_command_(TuyaCommandTypeV3 command) { this->send_command_(command, nullptr, 0); }
 
   TuyaInitState init_state_ = TuyaInitState::INIT_HEARTBEAT;
+  WifiState wifi_state_ = WifiState::DISCONNECTED;
   int gpio_status_ = -1;
   int gpio_reset_ = -1;
   std::string product_ = "";
+  int version_ = -1;
   std::vector<TuyaDatapointListener> listeners_;
   std::vector<TuyaDatapoint> datapoints_;
   std::vector<uint8_t> rx_message_;
