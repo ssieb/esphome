@@ -140,7 +140,7 @@ void Tuya::handle_command_(TuyaCommandTypeV0 command, uint8_t version, const uin
       this->send_empty_command_(TuyaCommandTypeV0::WIFI_RESET);
       break;
     case TuyaCommandTypeV0::WIFI_CONF:
-      ESP_LOGV(TAG, "MCU requested %s wifi mode", buffer[0] == 0 : "smartconfig", "AP");
+      ESP_LOGV(TAG, "MCU requested %s wifi mode", buffer[0] == 0 ? "smartconfig" : "AP");
       this->send_empty_command_(TuyaCommandTypeV0::WIFI_CONF);
       break;
     case TuyaCommandTypeV0::REALTIME_REPORT:
@@ -218,7 +218,7 @@ void Tuya::handle_command_(TuyaCommandTypeV3 command, uint8_t version, const uin
       this->send_empty_command_(TuyaCommandTypeV3::WIFI_RESET);
       break;
     case TuyaCommandTypeV3::WIFI_SELECT:
-      ESP_LOGD(TAG, "MCU request %s Wifi mode", buffer[0] == 0 ? "smartconfig" : "AP");
+      ESP_LOGD(TAG, "MCU requested %s Wifi mode", buffer[0] == 0 ? "smartconfig" : "AP");
       this->send_empty_command_(TuyaCommandTypeV3::WIFI_SELECT);
       break;
     case TuyaCommandTypeV3::DATAPOINT_DELIVER:
