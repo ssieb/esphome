@@ -94,8 +94,13 @@ void EZOSensor::loop() {
 	    break;
 	  }
         }
-        float val = parse_number<float>((char *) &buf[1]).value_or(0);
-        this->publish_state(val);
+        std::string payload = reinterpret_cast<char *>(&buf[1]);
+        auto val = parse_float(payload);
+        if (!val.has_value()) {
+          ESP_LOGW(TAG, "Can't convert '%s' to number!", payload.c_str());
+        } else {
+          this->publish_state(*val);
+        }
         break;
       }
       case EzoCommandType::EZO_LED: {
