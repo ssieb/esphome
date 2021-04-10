@@ -33,20 +33,17 @@ void EZOSensor::loop() {
     return;
   }
 
-  ezo_command *to_run = this->commands_.front();
+  EzoCommand *to_run = this->commands_.front();
 
   if (!to_run->command_sent) {
-    // auto data = reinterpret_cast<const uint8_t *>(&to_run->command.c_str());
-    ESP_LOGD(TAG, "Sending command \"%s\"", to_run->command.c_str());
+    auto data = reinterpret_cast<const uint8_t *>(&to_run->command.c_str()[0]);
+    ESP_LOGD(TAG, "Sending command \"%s\"", data);
 
     for (uint8_t i = 0; i < to_run->command.length(); i++) {
-      uint8_t d = to_run->command[i];
-      ESP_LOGD(TAG, "Sending index: %d char: \"%c\" hex: 0x%02X", i, to_run->command[i], to_run->command[i]);
-
-      this->write_bytes_raw(&d, 1);
+      ESP_LOGD(TAG, "Sending index: %d char: \"%c\" hex: 0x%02X", i, data[i], data[i]);
     }
 
-    // this->write_bytes_raw(data, to_run->command.length());
+    this->write_bytes_raw(data, to_run->command.length());
 
     this->start_time_ = millis();
     to_run->command_sent = true;
@@ -95,11 +92,10 @@ void EZOSensor::loop() {
 	  }
         }
         float val = parse_number<float>((char *) &buf[1]).value_or(0);
-        float val = atof((char *) &buf[1]);
         this->publish_state(val);
         break;
       }
-      case EZO_COMMAND_TYPE::EZO_LED: {
+      case EzoCommandType::EZO_LED: {
         break;
       }
     }
@@ -110,7 +106,11 @@ void EZOSensor::loop() {
 }
 
 // LED control
-void EZOSensor::set_led_state(bool on) { this->add_command("L," + on ? "1" : "0", EZO_COMMAND_TYPE::EZO_LED); }
+void EZOSensor::set_led_state(bool on) {
+  std::string to_send = "L,";
+  to_send += on ? "1" : "0";
+  this->add_command(to_send, EzoCommandType::EZO_LED);
+}
 
 void EZOSensor::set_tempcomp_value(float temp) {}
 
