@@ -365,6 +365,25 @@ sensor:
       name: "Propane test distance"
     battery_level:
       name: "Propane test battery level"
+  - platform: ezo
+    id: ph_ezo
+    address: 99
+    unit_of_measurement: 'pH'
+    on_led:
+      - lambda: |-
+          ESP_LOGD("TEST","Triggered with %s", ONOFF(x));
+    on_device_information:
+      - lambda: |-
+          ESP_LOGD("TEST","Triggered with %s", x.c_str());
+    on_slope:
+      - lambda: |-
+          ESP_LOGD("TEST","Triggered with %s", x.c_str());
+    on_calibration:
+      - lambda: |-
+          ESP_LOGD("TEST","Triggered with %s", x.c_str());
+    on_t:
+      - lambda: |-
+          ESP_LOGD("TEST","Triggered with %s", x.c_str());
 
 time:
   - platform: homeassistant
