@@ -74,11 +74,11 @@ void EZOSensor::loop() {
   if (millis() - this->start_time_ < to_run->delay_ms)
     return;
 
-  uint8_t buf[20];
+  uint8_t buf[32];
 
   buf[0] = 0;
 
-  if (!this->read_bytes_raw(buf, 20)) {
+  if (!this->read_bytes_raw(buf, 32)) {
     ESP_LOGE(TAG, "read error");
     delete to_run;
     this->commands_.pop_front();
@@ -102,6 +102,11 @@ void EZOSensor::loop() {
   }
 
   ESP_LOGD(TAG, "Received buffer \"%s\" for command type %s", buf, EzoCommandTypeStrings[to_run->command_type]);
+
+  for (int index = 0; index < 32; ++i) {
+    ESP_LOGD(TAG, "Received buffer index: %d char: \"%c\" %d", i, buf[i], buf[i]);
+  }
+
   if (buf[0] == 1) {
     // some sensors return multiple comma-separated values, terminate string after first one
     for (size_t i = 1; i < sizeof(buf) - 1; i++) {
@@ -151,7 +156,9 @@ void EZOSensor::loop() {
           this->t_callback_.call(payload);
           break;
         }
-        default: { break; }
+        default: {
+          break;
+        }
       }
     }
   }
