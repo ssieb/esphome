@@ -103,11 +103,11 @@ void EZOSensor::loop() {
 
   ESP_LOGD(TAG, "Received buffer \"%s\" for command type %s", buf, EzoCommandTypeStrings[to_run->command_type]);
 
-  for (int index = 0; index < 32; ++i) {
-    ESP_LOGD(TAG, "Received buffer index: %d char: \"%c\" %d", i, buf[i], buf[i]);
+  for (int index = 0; index < 32; ++index) {
+    ESP_LOGD(TAG, "Received buffer index: %d char: \"%c\" %d", index, buf[index], buf[index]);
   }
 
-  if (buf[0] == 1 || (to_run->command_type == EzoCommandType::EZO_CALIBRATION)) {
+  if (buf[0] == 1 || (to_run->command_type == EzoCommandType::EZO_CALIBRATION)) {  // EZO_CALIBRATION returns 0-3
     // some sensors return multiple comma-separated values, terminate string after first one
     for (size_t i = 1; i < sizeof(buf) - 1; i++) {
       if (buf[i] == ',') {
