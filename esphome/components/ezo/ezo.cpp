@@ -160,9 +160,7 @@ void EZOSensor::loop() {
           this->custom_callback_.call(payload);
           break;
         }
-        default: {
-          break;
-        }
+        default: { break; }
       }
     }
   }
