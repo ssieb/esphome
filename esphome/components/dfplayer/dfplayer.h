@@ -65,6 +65,10 @@ class DFPlayer : public uart::UARTDevice, public Component {
     this->ack_reset_is_playing_ = true;
     this->send_cmd_(0x4A);
   }
+  void version() {
+    this->ack_reset_is_playing_ = true;
+    this->send_cmd_(0x46);
+  }
   void reset() {
     this->ack_reset_is_playing_ = true;
     this->send_cmd_(0x0C);
@@ -189,6 +193,7 @@ DFPLAYER_SIMPLE_ACTION(SleepAction, sleep)
 DFPLAYER_SIMPLE_ACTION(NormalAction, normal)
 DFPLAYER_SIMPLE_ACTION(KeepOnAction, keepon)
 DFPLAYER_SIMPLE_ACTION(ResetAction, reset)
+DFPLAYER_SIMPLE_ACTION(VersionAction, version)
 DFPLAYER_SIMPLE_ACTION(StartAction, start)
 DFPLAYER_SIMPLE_ACTION(PauseAction, pause)
 DFPLAYER_SIMPLE_ACTION(StopAction, stop)
