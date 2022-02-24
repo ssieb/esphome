@@ -13,6 +13,7 @@ void BLEBinaryOutput::dump_config() {
   ESP_LOGCONFIG(TAG, "  MAC address        : %s", this->parent_->address_str().c_str());
   ESP_LOGCONFIG(TAG, "  Service UUID       : %s", this->service_uuid_.to_string().c_str());
   ESP_LOGCONFIG(TAG, "  Characteristic UUID: %s", this->char_uuid_.to_string().c_str());
+  ESP_LOGCONFIG(TAG, "  ON: %d  OFF: %d", this->on_value_, this->off_value_);
   LOG_BINARY_OUTPUT(this);
 }
 
@@ -61,12 +62,12 @@ void BLEBinaryOutput::write_state(bool state) {
     return;
   }
 
-  uint8_t state_as_uint = (uint8_t) state;
-  ESP_LOGV(TAG, "[%s] Write State: %d", this->char_uuid_.to_string().c_str(), state_as_uint);
+  uint16_t state_as_uint = state ? this->on_value_ : this->off_value_;
+  ESP_LOGV(TAG, "[%s] Write State: %x", this->char_uuid_.to_string().c_str(), state_as_uint);
   if (this->require_response_) {
-    chr->write_value(&state_as_uint, sizeof(state_as_uint), ESP_GATT_WRITE_TYPE_RSP);
+    chr->write_value((uint8_t *)&state_as_uint, sizeof(state_as_uint), ESP_GATT_WRITE_TYPE_RSP);
   } else {
-    chr->write_value(&state_as_uint, sizeof(state_as_uint), ESP_GATT_WRITE_TYPE_NO_RSP);
+    chr->write_value((uint8_t *)&state_as_uint, sizeof(state_as_uint), ESP_GATT_WRITE_TYPE_NO_RSP);
   }
 }
 

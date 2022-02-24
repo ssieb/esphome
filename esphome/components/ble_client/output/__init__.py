@@ -9,6 +9,8 @@ DEPENDENCIES = ["ble_client"]
 
 CONF_CHARACTERISTIC_UUID = "characteristic_uuid"
 CONF_REQUIRE_RESPONSE = "require_response"
+CONF_ON_VALUE = "on_value"
+CONF_OFF_VALUE = "off_value"
 
 BLEBinaryOutput = ble_client_ns.class_(
     "BLEBinaryOutput", output.BinaryOutput, ble_client.BLEClientNode, cg.Component
@@ -21,6 +23,8 @@ CONFIG_SCHEMA = cv.All(
             cv.Required(CONF_SERVICE_UUID): esp32_ble_tracker.bt_uuid,
             cv.Required(CONF_CHARACTERISTIC_UUID): esp32_ble_tracker.bt_uuid,
             cv.Optional(CONF_REQUIRE_RESPONSE, default=False): cv.boolean,
+            cv.Optional(CONF_ON_VALUE, default=0): cv.int_range(min=0),
+            cv.Optional(CONF_OFF_VALUE, default=1): cv.int_range(min=0),
         }
     )
     .extend(cv.COMPONENT_SCHEMA)
@@ -64,6 +68,8 @@ def to_code(config):
         )
         cg.add(var.set_char_uuid128(uuid128))
     cg.add(var.set_require_response(config[CONF_REQUIRE_RESPONSE]))
+    cg.add(var.set_on_value(config[CONF_ON_VALUE]))
+    cg.add(var.set_off_value(config[CONF_OFF_VALUE]))
     yield output.register_output(var, config)
     yield ble_client.register_ble_node(var, config)
     yield cg.register_component(var, config)

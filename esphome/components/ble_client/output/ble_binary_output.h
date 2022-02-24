@@ -26,10 +26,14 @@ class BLEBinaryOutput : public output::BinaryOutput, public BLEClientNode, publi
   void gattc_event_handler(esp_gattc_cb_event_t event, esp_gatt_if_t gattc_if,
                            esp_ble_gattc_cb_param_t *param) override;
   void set_require_response(bool response) { this->require_response_ = response; }
+  void set_on_value(bool on_value) { this->on_value_ = on_value; }
+  void set_off_value(bool off_value) { this->off_value_ = off_value; }
 
  protected:
   void write_state(bool state) override;
   bool require_response_;
+  uint16_t on_value_;
+  uint16_t off_value_;
   espbt::ESPBTUUID service_uuid_;
   espbt::ESPBTUUID char_uuid_;
   espbt::ClientState client_state_;
