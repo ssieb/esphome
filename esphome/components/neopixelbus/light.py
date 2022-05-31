@@ -202,7 +202,12 @@ async def to_code(config):
     if has_white:
         out_type = NeoPixelRGBWLightOutput.template(method_template)
     else:
-        out_type = NeoPixelRGBLightOutput.template(method_template)
+        if config[CONF_VARIANT] == "p9813":
+            out_type = NeoPixelRGBLightOutput.template(
+                method_template, cg.global_ns.P9813BgrFeature
+            )
+        else:
+            out_type = NeoPixelRGBLightOutput.template(method_template)
     rhs = out_type.new()
     var = cg.Pvariable(config[CONF_OUTPUT_ID], rhs, out_type)
     await light.register_light(var, config)
