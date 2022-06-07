@@ -17,7 +17,7 @@ class CDL210Component : public PollingComponent, public uart::UARTDevice {
 
   void set_temperature_sensor(sensor::Sensor *temperature_sensor) { temperature_sensor_ = temperature_sensor; }
   void set_co2_sensor(sensor::Sensor *co2_sensor) { co2_sensor_ = co2_sensor; }
-  void set_humid_sensor(sensor::Sensor *humidity_sensor) { humidity_sensor_ = humidity_sensor; }
+  void set_humidity_sensor(sensor::Sensor *humidity_sensor) { humidity_sensor_ = humidity_sensor; }
 
  protected:
   bool cdl210_write_command_(const uint8_t *command, uint8_t *response);
