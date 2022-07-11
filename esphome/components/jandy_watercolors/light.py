@@ -9,7 +9,7 @@ JandyWatercolorsLightOutput = jandy_light_ns.class_(
     "JandyWatercolorsLightOutput", light.LightOutput
 )
 
-CONFIG_SCHEMA = light.BINARY_LIGHT_SCHEMA.extend(
+CONFIG_SCHEMA = light.LIGHT_SCHEMA.extend(
     {
         cv.GenerateID(CONF_OUTPUT_ID): cv.declare_id(JandyWatercolorsLightOutput),
         cv.Required(CONF_OUTPUT): cv.use_id(output.BinaryOutput),
