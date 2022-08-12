@@ -57,7 +57,7 @@ void EZOSensor::loop() {
     auto data = reinterpret_cast<const uint8_t *>(&to_run->command.c_str()[0]);
     ESP_LOGVV(TAG, "Sending command \"%s\"", data);
 
-    this->write_bytes_raw(data, to_run->command.length());
+    this->write(data, to_run->command.length());
 
     if (to_run->command_type == EzoCommandType::EZO_SLEEP ||
         to_run->command_type == EzoCommandType::EZO_I2C) {  // Commands with no return data
@@ -119,7 +119,7 @@ void EZOSensor::loop() {
     if (!payload.empty()) {
       switch (to_run->command_type) {
         case EzoCommandType::EZO_READ: {
-          auto val = parse_float(payload);
+          auto val = parse_number<float>(payload);
           if (!val.has_value()) {
             ESP_LOGW(TAG, "Can't convert '%s' to number!", payload.c_str());
           } else {
