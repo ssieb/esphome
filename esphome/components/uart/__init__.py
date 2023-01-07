@@ -94,6 +94,8 @@ UARTDummyReceiver = uart_ns.class_("UARTDummyReceiver", cg.Component)
 MULTI_CONF = True
 MULTI_CONF_NO_DEFAULT = True
 
+CONF_HALF_DUPLEX = "half_duplex"
+
 
 def validate_raw_data(value):
     if isinstance(value, str):
@@ -112,6 +114,17 @@ def validate_rx_pin(value):
     if CORE.is_esp8266 and value[CONF_NUMBER] >= 16:
         raise cv.Invalid("Pins GPIO16 and GPIO17 cannot be used as RX pins on ESP8266.")
     return value
+
+
+def validate_esp32(config):
+    if (
+        CORE.is_esp32
+        and CONF_TX_PIN in config
+        and CONF_RX_PIN in config
+        and config[CONF_HALF_DUPLEX]
+    ):
+        raise cv.Invalid("Only define one pin for half duplex mode")
+    return config
 
 
 def validate_host_config(config):
@@ -230,9 +243,11 @@ CONFIG_SCHEMA = cv.All(
                 "This option has been removed. Please instead use invert in the tx/rx pin schemas."
             ),
             cv.Optional(CONF_DEBUG): maybe_empty_debug,
+            cv.Optional(CONF_HALF_DUPLEX, default=False): cv.boolean,
         }
     ).extend(cv.COMPONENT_SCHEMA),
     cv.has_at_least_one_key(CONF_TX_PIN, CONF_RX_PIN, CONF_PORT),
+    validate_esp32,
     validate_host_config,
 )
 
@@ -281,6 +296,8 @@ async def to_code(config):
     cg.add(var.set_stop_bits(config[CONF_STOP_BITS]))
     cg.add(var.set_data_bits(config[CONF_DATA_BITS]))
     cg.add(var.set_parity(config[CONF_PARITY]))
+    if CORE.is_esp32 and config[CONF_HALF_DUPLEX]:
+        cg.add(var.set_half_duplex())
 
     if CONF_DEBUG in config:
         await debug_to_code(config[CONF_DEBUG], var)
