@@ -28,11 +28,15 @@ class ESP32ArduinoUARTComponent : public UARTComponent, public Component {
 
   uint32_t get_config();
 
+  void set_half_duplex() { this->half_duplex_ = true; }
  protected:
   void check_logger_conflict() override;
 
   HardwareSerial *hw_serial_{nullptr};
   uint8_t number_{0};
+  int8_t pin_;
+  bool invert_;
+  bool half_duplex_{false};
 };
 
 }  // namespace uart

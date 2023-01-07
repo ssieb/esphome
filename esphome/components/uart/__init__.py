@@ -49,6 +49,8 @@ UARTDebugger = uart_ns.class_("UARTDebugger", cg.Component, automation.Action)
 UARTDummyReceiver = uart_ns.class_("UARTDummyReceiver", cg.Component)
 MULTI_CONF = True
 
+CONF_HALF_DUPLEX = "half_duplex"
+
 
 def validate_raw_data(value):
     if isinstance(value, str):
@@ -79,6 +81,13 @@ def validate_invert_esp32(config):
         raise cv.Invalid(
             "Different invert values for TX and RX pin are not (yet) supported for ESP32."
         )
+    if (
+        CORE.is_esp32
+        and CONF_TX_PIN in config
+        and CONF_RX_PIN in config
+        and config[CONF_HALF_DUPLEX]
+    ):
+        raise cv.Invalid("Only define one pin for half duplex mode")
     return config
 
 
@@ -176,6 +185,7 @@ CONFIG_SCHEMA = cv.All(
                 "This option has been removed. Please instead use invert in the tx/rx pin schemas."
             ),
             cv.Optional(CONF_DEBUG): maybe_empty_debug,
+            cv.Optional(CONF_HALF_DUPLEX, default=False): cv.boolean,
         }
     ).extend(cv.COMPONENT_SCHEMA),
     cv.has_at_least_one_key(CONF_TX_PIN, CONF_RX_PIN),
@@ -225,6 +235,8 @@ async def to_code(config):
     cg.add(var.set_stop_bits(config[CONF_STOP_BITS]))
     cg.add(var.set_data_bits(config[CONF_DATA_BITS]))
     cg.add(var.set_parity(config[CONF_PARITY]))
+    if CORE.is_esp32 and config[CONF_HALF_DUPLEX]:
+        cg.add(var.set_half_duplex())
 
     if CONF_DEBUG in config:
         await debug_to_code(config[CONF_DEBUG], var)
