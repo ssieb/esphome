@@ -157,10 +157,11 @@ void IDFUARTComponent::write_array(const uint8_t *data, size_t len) {
       ESP_LOGW(TAG, "uart_set_pin failed: %s", esp_err_to_name(err));
       this->mark_failed();
     }
-    uart_write_bytes_with_break(this->uart_num_, nullptr, 0, 12);
+    uart_write_bytes_with_break(this->uart_num_, "\x00", 1, 12);
     delay(10);
     uart_write_bytes(this->uart_num_, data, len);
-    uart_wait_tx_done(this->uart_num_, 500 / portTICK_PERIOD_MS);
+    uart_wait_tx_idle_polling(this->uart_num_);
+    uart_flush_input(this->uart_num_);
     err = uart_set_pin(this->uart_num_, -1, this->pin_, UART_PIN_NO_CHANGE, UART_PIN_NO_CHANGE);
     if (err != ESP_OK) {
       ESP_LOGW(TAG, "uart_set_pin failed: %s", esp_err_to_name(err));
