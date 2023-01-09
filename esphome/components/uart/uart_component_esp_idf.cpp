@@ -128,8 +128,17 @@ void IDFUARTComponent::setup() {
 void IDFUARTComponent::dump_config() {
   ESP_LOGCONFIG(TAG, "UART Bus:");
   ESP_LOGCONFIG(TAG, "  Number: %u", this->uart_num_);
-  LOG_PIN("  TX Pin: ", tx_pin_);
-  LOG_PIN("  RX Pin: ", rx_pin_);
+  ESP_LOGCONFIG(TAG, "  Half Duplex");
+  if (this->half_duplex_) {
+    if (this->tx_pin_ != nullptr) {
+      LOG_PIN("  Pin: ", tx_pin_);
+    } else {
+      LOG_PIN("  Pin: ", rx_pin_);
+    }
+  } else {
+    LOG_PIN("  TX Pin: ", tx_pin_);
+    LOG_PIN("  RX Pin: ", rx_pin_);
+  }
   if (this->rx_pin_ != nullptr) {
     ESP_LOGCONFIG(TAG, "  RX Buffer Size: %u", this->rx_buffer_size_);
   }
@@ -143,7 +152,7 @@ void IDFUARTComponent::dump_config() {
 void IDFUARTComponent::write_array(const uint8_t *data, size_t len) {
   xSemaphoreTake(this->lock_, portMAX_DELAY);
   if (this->half_duplex_) {
-    err = uart_set_pin(this->uart_num_, this->pin_, -1, UART_PIN_NO_CHANGE, UART_PIN_NO_CHANGE);
+    esp_err_t err = uart_set_pin(this->uart_num_, this->pin_, -1, UART_PIN_NO_CHANGE, UART_PIN_NO_CHANGE);
     if (err != ESP_OK) {
       ESP_LOGW(TAG, "uart_set_pin failed: %s", esp_err_to_name(err));
       this->mark_failed();
