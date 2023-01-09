@@ -89,11 +89,24 @@ void IDFUARTComponent::setup() {
   int8_t tx = this->tx_pin_ != nullptr ? this->tx_pin_->get_pin() : -1;
   int8_t rx = this->rx_pin_ != nullptr ? this->rx_pin_->get_pin() : -1;
 
-  err = uart_set_pin(this->uart_num_, tx, rx, UART_PIN_NO_CHANGE, UART_PIN_NO_CHANGE);
-  if (err != ESP_OK) {
-    ESP_LOGW(TAG, "uart_set_pin failed: %s", esp_err_to_name(err));
-    this->mark_failed();
-    return;
+  if (this->half_duplex_) {
+    if (tx != -1)
+      this->pin_ = tx;
+    else
+      this->pin_ = rx;
+    err = uart_set_pin(this->uart_num_, -1, this->pin_, UART_PIN_NO_CHANGE, UART_PIN_NO_CHANGE);
+    if (err != ESP_OK) {
+      ESP_LOGW(TAG, "uart_set_pin failed: %s", esp_err_to_name(err));
+      this->mark_failed();
+      return;
+    }
+  } else {
+    err = uart_set_pin(this->uart_num_, tx, rx, UART_PIN_NO_CHANGE, UART_PIN_NO_CHANGE);
+    if (err != ESP_OK) {
+      ESP_LOGW(TAG, "uart_set_pin failed: %s", esp_err_to_name(err));
+      this->mark_failed();
+      return;
+    }
   }
 
   uint32_t invert = 0;
@@ -129,7 +142,24 @@ void IDFUARTComponent::dump_config() {
 
 void IDFUARTComponent::write_array(const uint8_t *data, size_t len) {
   xSemaphoreTake(this->lock_, portMAX_DELAY);
-  uart_write_bytes(this->uart_num_, data, len);
+  if (this->half_duplex_) {
+    err = uart_set_pin(this->uart_num_, this->pin_, -1, UART_PIN_NO_CHANGE, UART_PIN_NO_CHANGE);
+    if (err != ESP_OK) {
+      ESP_LOGW(TAG, "uart_set_pin failed: %s", esp_err_to_name(err));
+      this->mark_failed();
+    }
+    uart_write_bytes_with_break(this->uart_num_, nullptr, 0);
+    delay(10);
+    uart_write_bytes(this->uart_num_, data, len);
+    uart_wait_tx_done(this->uart_num_, 500 / portTICK_PERIOD_MS);
+    err = uart_set_pin(this->uart_num_, -1, this->pin_, UART_PIN_NO_CHANGE, UART_PIN_NO_CHANGE);
+    if (err != ESP_OK) {
+      ESP_LOGW(TAG, "uart_set_pin failed: %s", esp_err_to_name(err));
+      this->mark_failed();
+    }
+  } else {
+    uart_write_bytes(this->uart_num_, data, len);
+  }
   xSemaphoreGive(this->lock_);
 #ifdef USE_UART_DEBUGGER
   for (size_t i = 0; i < len; i++) {

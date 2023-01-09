@@ -14,6 +14,7 @@ class IDFUARTComponent : public UARTComponent, public Component {
   void setup() override;
   void dump_config() override;
   float get_setup_priority() const override { return setup_priority::BUS; }
+  void set_half_duplex() { this->half_duplex_ = true; }
 
   void write_array(const uint8_t *data, size_t len) override;
 
@@ -28,6 +29,9 @@ class IDFUARTComponent : public UARTComponent, public Component {
   uart_port_t uart_num_;
   uart_config_t get_config_();
   SemaphoreHandle_t lock_;
+  bool half_duplex_{false};
+  int8_t pin_;
+  uint32_t invert_;
 
   bool has_peek_{false};
   uint8_t peek_byte_;
