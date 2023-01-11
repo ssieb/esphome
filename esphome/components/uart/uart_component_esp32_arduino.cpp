@@ -100,6 +100,7 @@ void ESP32ArduinoUARTComponent::setup() {
     invert = true;
   if (rx_pin_ != nullptr && rx_pin_->is_inverted())
     invert = true;
+  this->hw_serial_->setRxBufferSize(this->rx_buffer_size_);
   if (this->half_duplex_) {
     if (tx != -1)
       this->pin_ = tx;
@@ -110,7 +111,6 @@ void ESP32ArduinoUARTComponent::setup() {
   } else {
     this->hw_serial_->begin(this->baud_rate_, get_config(), rx, tx, invert);
   }
-  this->hw_serial_->setRxBufferSize(this->rx_buffer_size_);
 }
 
 void ESP32ArduinoUARTComponent::dump_config() {
@@ -138,6 +138,10 @@ void ESP32ArduinoUARTComponent::dump_config() {
 
 void ESP32ArduinoUARTComponent::write_array(const uint8_t *data, size_t len) {
   if (this->half_duplex_) {
+    this->hw_serial_->begin(this->baud_rate_ / 2, get_config(), -1, this->pin_, this->invert_);
+    this->hw_serial_->write("", 1);
+    this->hw_serial_->flush();
+    delay(10);
     this->hw_serial_->begin(this->baud_rate_, get_config(), -1, this->pin_, this->invert_);
     this->hw_serial_->write(data, len);
     this->hw_serial_->flush();

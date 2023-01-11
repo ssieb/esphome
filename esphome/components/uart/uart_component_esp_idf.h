@@ -30,7 +30,8 @@ class IDFUARTComponent : public UARTComponent, public Component {
   uart_config_t get_config_();
   SemaphoreHandle_t lock_;
   bool half_duplex_{false};
-  int8_t pin_;
+  int8_t active_pin_;
+  int8_t idle_pin_;
   uint32_t invert_;
 
   bool has_peek_{false};

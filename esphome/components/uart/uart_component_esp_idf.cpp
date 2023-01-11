@@ -90,11 +90,9 @@ void IDFUARTComponent::setup() {
   int8_t rx = this->rx_pin_ != nullptr ? this->rx_pin_->get_pin() : -1;
 
   if (this->half_duplex_) {
-    if (tx != -1)
-      this->pin_ = tx;
-    else
-      this->pin_ = rx;
-    err = uart_set_pin(this->uart_num_, -1, this->pin_, UART_PIN_NO_CHANGE, UART_PIN_NO_CHANGE);
+    this->active_pin_ = tx;
+    this->idle_pin_ = rx;
+    err = uart_set_pin(this->uart_num_, this->idle_pin_, this->active_pin_, UART_PIN_NO_CHANGE, UART_PIN_NO_CHANGE);
     if (err != ESP_OK) {
       ESP_LOGW(TAG, "uart_set_pin failed: %s", esp_err_to_name(err));
       this->mark_failed();
@@ -130,11 +128,8 @@ void IDFUARTComponent::dump_config() {
   ESP_LOGCONFIG(TAG, "  Number: %u", this->uart_num_);
   ESP_LOGCONFIG(TAG, "  Half Duplex");
   if (this->half_duplex_) {
-    if (this->tx_pin_ != nullptr) {
-      LOG_PIN("  Pin: ", tx_pin_);
-    } else {
-      LOG_PIN("  Pin: ", rx_pin_);
-    }
+    LOG_PIN("  Active Pin: ", tx_pin_);
+    LOG_PIN("  Idle Pin: ", rx_pin_);
   } else {
     LOG_PIN("  TX Pin: ", tx_pin_);
     LOG_PIN("  RX Pin: ", rx_pin_);
@@ -152,17 +147,19 @@ void IDFUARTComponent::dump_config() {
 void IDFUARTComponent::write_array(const uint8_t *data, size_t len) {
   xSemaphoreTake(this->lock_, portMAX_DELAY);
   if (this->half_duplex_) {
-    esp_err_t err = uart_set_pin(this->uart_num_, this->pin_, -1, UART_PIN_NO_CHANGE, UART_PIN_NO_CHANGE);
+    esp_err_t err = uart_set_pin(this->uart_num_, this->active_pin_, this->idle_pin_, UART_PIN_NO_CHANGE, UART_PIN_NO_CHANGE);
     if (err != ESP_OK) {
       ESP_LOGW(TAG, "uart_set_pin failed: %s", esp_err_to_name(err));
       this->mark_failed();
     }
-    uart_write_bytes_with_break(this->uart_num_, "\x00", 1, 12);
+    uart_set_baudrate(this->uart_num_, this->baud_rate_ / 2);
+    uart_write_bytes(this->uart_num_, "", 1);
+    uart_wait_tx_idle_polling(this->uart_num_);
     delay(10);
+    uart_set_baudrate(this->uart_num_, this->baud_rate_);
     uart_write_bytes(this->uart_num_, data, len);
     uart_wait_tx_idle_polling(this->uart_num_);
-    uart_flush_input(this->uart_num_);
-    err = uart_set_pin(this->uart_num_, -1, this->pin_, UART_PIN_NO_CHANGE, UART_PIN_NO_CHANGE);
+    err = uart_set_pin(this->uart_num_, this->idle_pin_, this->active_pin_, UART_PIN_NO_CHANGE, UART_PIN_NO_CHANGE);
     if (err != ESP_OK) {
       ESP_LOGW(TAG, "uart_set_pin failed: %s", esp_err_to_name(err));
       this->mark_failed();

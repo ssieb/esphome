@@ -81,13 +81,6 @@ def validate_invert_esp32(config):
         raise cv.Invalid(
             "Different invert values for TX and RX pin are not (yet) supported for ESP32."
         )
-    if (
-        CORE.is_esp32
-        and CONF_TX_PIN in config
-        and CONF_RX_PIN in config
-        and config[CONF_HALF_DUPLEX]
-    ):
-        raise cv.Invalid("Only define one pin for half duplex mode")
     return config
 
 
