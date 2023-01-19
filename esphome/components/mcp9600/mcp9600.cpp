@@ -31,11 +31,13 @@ void MCP9600Component::setup() {
   ESP_LOGCONFIG(TAG, "Setting up MCP9600...");
 
   uint16_t dev_id = 0;
-  this->read_byte_16(MCP9600_REGISTER_DEVICE_ID, &dev_id);
+  if (!this->read_byte_16(MCP9600_REGISTER_DEVICE_ID, &dev_id))
+    ESP_LOGE(TAG, "unable to read device id");
   this->device_id_ = (uint8_t)(dev_id >> 8);
 
   // Allows both MCP9600's and MCP9601's to be connected.
   if (this->device_id_ != (uint8_t) 0x40 && this->device_id_ != (uint8_t) 0x41) {
+    ESP_LOGE(TAG, "device id is invalid: %04x", dev_id);
     this->error_code_ = COMMUNICATION_FAILED;
     this->mark_failed();
     return;
