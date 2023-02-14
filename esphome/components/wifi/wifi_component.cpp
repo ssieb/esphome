@@ -68,7 +68,9 @@ void WiFiComponent::start() {
 
   ESP_LOGD(TAG, "has_sta: %d", this->has_sta());
   if (this->has_sta()) {
+    ESP_LOGD(TAG, "starting pre setup");
     this->wifi_sta_pre_setup_();
+    ESP_LOGD(TAG, "finished pre setup");
     if (this->output_power_.has_value() && !this->wifi_apply_output_power_(*this->output_power_)) {
       ESP_LOGV(TAG, "Setting Output Power Option failed!");
     }
