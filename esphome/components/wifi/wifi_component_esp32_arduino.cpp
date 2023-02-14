@@ -73,6 +73,7 @@ bool WiFiComponent::wifi_sta_pre_setup_() {
 }
 bool WiFiComponent::wifi_apply_power_save_() {
   wifi_ps_type_t power_save;
+  ESP_LOGD(TAG, "setting wifi power save mode %d", this->power_save_);
   switch (this->power_save_) {
     case WIFI_POWER_SAVE_LIGHT:
       power_save = WIFI_PS_MIN_MODEM;

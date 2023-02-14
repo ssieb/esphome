@@ -66,15 +66,20 @@ void WiFiComponent::start() {
     this->set_sta(sta);
   }
 
+  ESP_LOGD(TAG, "has_sta: %d", this->has_sta());
   if (this->has_sta()) {
     this->wifi_sta_pre_setup_();
     if (this->output_power_.has_value() && !this->wifi_apply_output_power_(*this->output_power_)) {
       ESP_LOGV(TAG, "Setting Output Power Option failed!");
     }
 
+    ESP_LOGD(TAG, "applying power save");
     if (!this->wifi_apply_power_save_()) {
       ESP_LOGV(TAG, "Setting Power Save Option failed!");
     }
+    wifi_ps_type_t ps_type;
+    esp_err_t err = esp_wifi_get_ps(&ps_type);
+    ESP_LOGD(TAG, "current power save mode is %d, error %d", ps_type, err);
 
     if (this->fast_connect_) {
       this->selected_ap_ = this->sta_[0];
