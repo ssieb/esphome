@@ -57,6 +57,8 @@ bool WiFiComponent::wifi_mode_(optional<bool> sta, optional<bool> ap) {
     ESP_LOGW(TAG, "Setting WiFi mode failed!");
   }
 
+  this->wifi_apply_power_save_();
+
   return ret;
 }
 bool WiFiComponent::wifi_apply_output_power_(float output_power) {
