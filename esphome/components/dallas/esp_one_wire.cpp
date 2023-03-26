@@ -43,6 +43,7 @@ bool HOT IRAM_ATTR ESPOneWire::reset() {
 void HOT IRAM_ATTR ESPOneWire::write_bit(bool bit) {
   // drive bus low
   pin_.pin_mode(gpio::FLAG_OUTPUT);
+  uint32_t start = micros();
   pin_.digital_write(false);
 
   // from datasheet:
@@ -53,9 +54,17 @@ void HOT IRAM_ATTR ESPOneWire::write_bit(bool bit) {
   // ds18b20 appears to read the bus after roughly 14µs
   uint32_t delay0 = bit ? 6 : 60;
   uint32_t delay1 = bit ? 54 : 5;
+  uint32_t next = micros();
+  delay0 -= next - start;
 
   // delay A/C
-  delayMicroseconds(delay0);
+  if (delay0 > 0) {
+    delayMicroseconds(delay0);
+    uint32_t diff = micros() - next;
+    if (diff > delay0 + 1)
+      ESP_LOGE(TAG, "delay took %u > %u", diff, delay0);
+  } else
+    ESP_LOGE(TAG, "delay overrun");
   // release bus
   pin_.digital_write(true);
   // delay B/D
