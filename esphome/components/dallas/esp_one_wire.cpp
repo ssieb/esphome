@@ -60,11 +60,12 @@ void HOT IRAM_ATTR ESPOneWire::write_bit(bool bit) {
   // delay A/C
   if (delay0 > 0) {
     delayMicroseconds(delay0);
-    uint32_t diff = micros() - next;
-    if (diff > delay0 + 1)
-      ESP_LOGE(TAG, "delay took %u > %u", diff, delay0);
-  } else
-    ESP_LOGE(TAG, "delay overrun");
+    //uint32_t diff = micros() - next;
+    //if (diff > delay0 + 1)
+    //  ESP_LOGE(TAG, "delay took %u > %u", diff, delay0);
+  } else {
+    //ESP_LOGE(TAG, "delay overrun");
+  }
   // release bus
   pin_.digital_write(true);
   // delay B/D

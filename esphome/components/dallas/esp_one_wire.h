@@ -62,6 +62,12 @@ class ESPOneWire {
   uint8_t last_discrepancy_{0};
   bool last_device_flag_{false};
   uint64_t rom_number_{0};
+
+  bool error_{false};
+  bool overrun_{false};
+  int wanted_;
+  int timed_;
+  int bit_;
 };
 
 }  // namespace dallas
