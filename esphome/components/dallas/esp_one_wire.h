@@ -53,6 +53,8 @@ class ESPOneWire {
 
   /// Helper that wraps search in a std::vector.
   std::vector<uint64_t> search_vec();
+  void clear_error();
+  void print_error();
 
  protected:
   /// Helper to get the internal 64-bit unsigned rom number as a 8-bit integer pointer.
@@ -65,6 +67,7 @@ class ESPOneWire {
 
   bool error_{false};
   bool overrun_{false};
+  bool baddelay_{false};
   int wanted_;
   int timed_;
   int bit_;

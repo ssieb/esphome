@@ -117,11 +117,13 @@ void DallasComponent::update() {
     return;
   }
 
+  this->one_wire_->clear_error();
   {
     InterruptLock lock;
     this->one_wire_->skip();
     this->one_wire_->write8(DALLAS_COMMAND_START_CONVERSION);
   }
+  this->one_wire_->print_error();
 
   for (auto *sensor : this->sensors_) {
     this->set_timeout(sensor->get_address_name(), sensor->millis_to_wait_for_conversion(), [this, sensor] {
@@ -170,6 +172,7 @@ bool IRAM_ATTR DallasTemperatureSensor::read_scratch_pad() {
     }
   }
 
+  wire->clear_error();
   {
     InterruptLock lock;
 
@@ -180,6 +183,7 @@ bool IRAM_ATTR DallasTemperatureSensor::read_scratch_pad() {
       i = wire->read8();
     }
   }
+  wire->print_error();
 
   return true;
 }

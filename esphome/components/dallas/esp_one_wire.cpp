@@ -60,10 +60,17 @@ void HOT IRAM_ATTR ESPOneWire::write_bit(bool bit) {
   // delay A/C
   if (delay0 > 0) {
     delayMicroseconds(delay0);
-    //uint32_t diff = micros() - next;
-    //if (diff > delay0 + 1)
+    uint32_t diff = micros() - next;
+    if (diff > delay0 + 1) {
+      this->error_ = true;
+      this->baddelay_ = true;
+      this->wanted_ = delay0;
+      this->timed_ = diff;
+    }
     //  ESP_LOGE(TAG, "delay took %u > %u", diff, delay0);
   } else {
+    this->error_ = true;
+    this->overrun_ = true;
     //ESP_LOGE(TAG, "delay overrun");
   }
   // release bus
@@ -120,12 +127,16 @@ bool HOT IRAM_ATTR ESPOneWire::read_bit() {
 void IRAM_ATTR ESPOneWire::write8(uint8_t val) {
   for (uint8_t i = 0; i < 8; i++) {
     this->write_bit(bool((1u << i) & val));
+    if (this->error_)
+      this->bit_ = i;
   }
 }
 
 void IRAM_ATTR ESPOneWire::write64(uint64_t val) {
   for (uint8_t i = 0; i < 64; i++) {
     this->write_bit(bool((1ULL << i) & val));
+    if (this->error_)
+      this->bit_ = i;
   }
 }
 
@@ -257,6 +268,22 @@ void IRAM_ATTR ESPOneWire::skip() {
 }
 
 uint8_t IRAM_ATTR *ESPOneWire::rom_number8_() { return reinterpret_cast<uint8_t *>(&this->rom_number_); }
+
+void ESPOneWire::clear_error() {
+  this->error_ = false;
+  this->overrun_ = false;
+  this->baddelay_ = false;
+}
+
+void ESPOneWire::print_error() {
+  if (!this->error_)
+    return;
+  if (this->overrun_)
+    ESP_LOGE(TAG, "output setup overrun");
+  if (this->baddelay_)
+    ESP_LOGE(TAG, "delay for bit %d took too long: %d > %d", this->bit_, this->timed_, this->wanted_);
+  this->clear_error();
+}
 
 }  // namespace dallas
 }  // namespace esphome
