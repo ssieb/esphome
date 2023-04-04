@@ -61,7 +61,7 @@ void HOT IRAM_ATTR ESPOneWire::write_bit(bool bit) {
   if (delay0 > 0) {
     delayMicroseconds(delay0);
     uint32_t diff = micros() - next;
-    if (diff > delay0 + 1) {
+    if (diff > delay0 + 5) {
       this->error_ = true;
       this->baddelay_ = true;
       this->wanted_ = delay0;
@@ -71,6 +71,7 @@ void HOT IRAM_ATTR ESPOneWire::write_bit(bool bit) {
   } else {
     this->error_ = true;
     this->overrun_ = true;
+    this->setup_ = next - start;
     //ESP_LOGE(TAG, "delay overrun");
   }
   // release bus
@@ -279,7 +280,7 @@ void ESPOneWire::print_error() {
   if (!this->error_)
     return;
   if (this->overrun_)
-    ESP_LOGE(TAG, "output setup overrun");
+    ESP_LOGE(TAG, "output setup overrun, took %d", this->setup_);
   if (this->baddelay_)
     ESP_LOGE(TAG, "delay for bit %d took too long: %d > %d", this->bit_, this->timed_, this->wanted_);
   this->clear_error();

@@ -68,6 +68,7 @@ class ESPOneWire {
   bool error_{false};
   bool overrun_{false};
   bool baddelay_{false};
+  int setup_;
   int wanted_;
   int timed_;
   int bit_;
