@@ -172,7 +172,7 @@ bool IRAM_ATTR DallasTemperatureSensor::read_scratch_pad() {
     }
   }
 
-  wire->clear_error();
+  //wire->clear_error();
   {
     InterruptLock lock;
 
@@ -183,7 +183,8 @@ bool IRAM_ATTR DallasTemperatureSensor::read_scratch_pad() {
       i = wire->read8();
     }
   }
-  wire->print_error();
+  //wire->print_error();
+  wire->print_timings();
 
   return true;
 }

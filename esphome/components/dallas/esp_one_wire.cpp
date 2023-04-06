@@ -10,7 +10,7 @@ static const char *const TAG = "dallas.one_wire";
 const uint8_t ONE_WIRE_ROM_SELECT = 0x55;
 const int ONE_WIRE_ROM_SEARCH = 0xF0;
 
-ESPOneWire::ESPOneWire(InternalGPIOPin *pin) { pin_ = pin->to_isr(); }
+ESPOneWire::ESPOneWire(InternalGPIOPin *pin) { pin_ = pin->to_isr(); this->timings_.reserve(8 * 3); }
 
 bool HOT IRAM_ATTR ESPOneWire::reset() {
   // See reset here:
@@ -42,8 +42,11 @@ bool HOT IRAM_ATTR ESPOneWire::reset() {
 
 void HOT IRAM_ATTR ESPOneWire::write_bit(bool bit) {
   // drive bus low
-  pin_.pin_mode(gpio::FLAG_OUTPUT);
   uint32_t start = micros();
+  //this->timings_.push_back(micros());
+  pin_.pin_mode(gpio::FLAG_OUTPUT);
+  if (this->record_)
+    this->timings_.push_back(micros() - start);
   pin_.digital_write(false);
 
   // from datasheet:
@@ -54,24 +57,28 @@ void HOT IRAM_ATTR ESPOneWire::write_bit(bool bit) {
   // ds18b20 appears to read the bus after roughly 14µs
   uint32_t delay0 = bit ? 6 : 60;
   uint32_t delay1 = bit ? 54 : 5;
-  uint32_t next = micros();
-  delay0 -= next - start;
+  //uint32_t next = micros();
+  //delay0 -= next - start;
+  if (this->record_)
+    this->timings_.push_back(micros() - start);
 
   // delay A/C
   if (delay0 > 0) {
     delayMicroseconds(delay0);
-    uint32_t diff = micros() - next;
-    if (diff > delay0 + 5) {
-      this->error_ = true;
-      this->baddelay_ = true;
-      this->wanted_ = delay0;
-      this->timed_ = diff;
-    }
+    if (this->record_)
+      this->timings_.push_back(micros() - start);
+    //uint32_t diff = micros() - next;
+    //if (diff > delay0 + 5) {
+      //this->error_ = true;
+      //this->baddelay_ = true;
+      //this->wanted_ = delay0;
+      //this->timed_ = diff;
+    //}
     //  ESP_LOGE(TAG, "delay took %u > %u", diff, delay0);
   } else {
-    this->error_ = true;
-    this->overrun_ = true;
-    this->setup_ = next - start;
+    //this->error_ = true;
+    //this->overrun_ = true;
+    //this->setup_ = next - start;
     //ESP_LOGE(TAG, "delay overrun");
   }
   // release bus
@@ -156,7 +163,10 @@ uint64_t IRAM_ATTR ESPOneWire::read64() {
   return ret;
 }
 void IRAM_ATTR ESPOneWire::select(uint64_t address) {
+  this->timings_.clear();
+  this->record_ = true;
   this->write8(ONE_WIRE_ROM_SELECT);
+  this->record_ = false;
   this->write64(address);
 }
 void IRAM_ATTR ESPOneWire::reset_search() {
@@ -284,6 +294,22 @@ void ESPOneWire::print_error() {
   if (this->baddelay_)
     ESP_LOGE(TAG, "delay for bit %d took too long: %d > %d", this->bit_, this->timed_, this->wanted_);
   this->clear_error();
+}
+
+void ESPOneWire::print_timings() {
+  char buf[8*3*4+1];
+  for (int i = 0; i < 8 * 3; i++ ) {
+    uint8_t n = this->timings_[i];
+    int pos = i * 4;
+    buf[pos + 2] = n % 10 + '0';
+    n /= 10;
+    buf[pos + 1] = n ? n % 10 + '0' : ' ';
+    n /= 10;
+    buf[pos] = n ? n % 10 + '0' : ' ';
+    buf[pos + 3] = ',';
+    buf[pos + 4] = 0;
+  }
+  ESP_LOGD(TAG, "timings: %s", buf);
 }
 
 }  // namespace dallas

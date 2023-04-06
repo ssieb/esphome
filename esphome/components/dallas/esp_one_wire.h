@@ -55,6 +55,7 @@ class ESPOneWire {
   std::vector<uint64_t> search_vec();
   void clear_error();
   void print_error();
+  void print_timings();
 
  protected:
   /// Helper to get the internal 64-bit unsigned rom number as a 8-bit integer pointer.
@@ -65,6 +66,8 @@ class ESPOneWire {
   bool last_device_flag_{false};
   uint64_t rom_number_{0};
 
+  std::vector<uint8_t> timings_;
+  bool record_{false};
   bool error_{false};
   bool overrun_{false};
   bool baddelay_{false};
