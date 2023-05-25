@@ -6,6 +6,7 @@
 #include "ota_component.h"
 #include "ota_backend.h"
 #include "esphome/components/esp8266/preferences.h"
+#include "esphome/core/log.h"
 
 #include <Updater.h>
 
@@ -42,8 +43,10 @@ OTAResponseTypes ArduinoESP8266OTABackend::write(uint8_t *data, size_t len) {
 }
 
 OTAResponseTypes ArduinoESP8266OTABackend::end() {
-  if (!Update.end())
+  if (!Update.end()) {
+    ESP_LOGE("OTA", "end failed, error code: %d", Update.getError());
     return OTA_RESPONSE_ERROR_UPDATE_END;
+  }
   return OTA_RESPONSE_OK;
 }
 
