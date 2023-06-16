@@ -5,62 +5,51 @@
 namespace esphome {
 namespace ezo {
 
+static const char *const TAG = "ezo.sensor";
+
 static const char *const EZO_COMMAND_TYPE_STRINGS[] = {"EZO_READ",  "EZO_LED",         "EZO_DEVICE_INFORMATION",
                                                        "EZO_SLOPE", "EZO_CALIBRATION", "EZO_SLEEP",
-                                                       "EZO_I2C",   "EZO_T",           "EZO_CUSTOM"};
+                                                       "EZO_I2C",   "EZO_T",           "EZO_CUSTOM",
+                                                       "EZO_INTERNAL"};
 
 static const char *const EZO_CALIBRATION_TYPE_STRINGS[] = {"LOW", "MID", "HIGH"};
 
-void EZOSensor::dump_config() {
-  LOG_SENSOR("", "EZO", this);
+void EZOSensor::dump_common_() {
   LOG_I2C_DEVICE(this);
+  ESP_LOGCONFIG(TAG, "EZO device '%s', version %s", this->device_name_.c_str(), this->version_.c_str());
   if (this->is_failed()) {
     ESP_LOGE(TAG, "Communication with EZO circuit failed!");
   }
   LOG_UPDATE_INTERVAL(this);
 }
 
+void EZOSensor::setup() {
+  this->send_internal_("i", [this](std::string payload) {
+    auto start_location = payload.find(',', 3);
+    this->device_name_ = payload.substr(3, start_location - 3);
+    this->version_ = payload.substr(start_location + 1);
+  });
+}
+
 void EZOSensor::update() {
-  // Check if a read is in there already and if not insert on in the second position
-
-  if (!this->commands_.empty() && this->commands_.front()->command_type != EzoCommandType::EZO_READ &&
-      this->commands_.size() > 1) {
-    bool found = false;
-
-    for (auto &i : this->commands_) {
-      if (i->command_type == EzoCommandType::EZO_READ) {
-        found = true;
-        break;
-      }
+  for (auto &cmd : this->commands_) {
+    if (cmd->command_type == EzoCommandType::EZO_READ) {
+      ESP_LOGW(TAG, "read already pending at update interval");
+      return;
     }
-
-    if (!found) {
-      std::unique_ptr<EzoCommand> ezo_command(new EzoCommand);
-      ezo_command->command = "R";
-      ezo_command->command_type = EzoCommandType::EZO_READ;
-      ezo_command->delay_ms = 900;
-
-      auto it = this->commands_.begin();
-      ++it;
-      this->commands_.insert(it, std::move(ezo_command));
-    }
-
-    return;
   }
-
   this->get_state();
 }
 
 void EZOSensor::loop() {
-  if (this->commands_.empty()) {
+  if (this->commands_.empty())
     return;
-  }
 
   EzoCommand *to_run = this->commands_.front().get();
 
   if (!to_run->command_sent) {
     const uint8_t *data = reinterpret_cast<const uint8_t *>(to_run->command.c_str());
-    ESP_LOGVV(TAG, "Sending command \"%s\"", data);
+    ESP_LOGV(TAG, "Sending command \"%s\"", data);
 
     this->write(data, to_run->command.length());
 
@@ -81,7 +70,6 @@ void EZOSensor::loop() {
     return;
 
   uint8_t buf[32];
-
   buf[0] = 0;
 
   if (!this->read_bytes_raw(buf, 32)) {
@@ -107,76 +95,81 @@ void EZOSensor::loop() {
   }
 
   ESP_LOGV(TAG, "Received buffer \"%s\" for command type %s", &buf[1], EZO_COMMAND_TYPE_STRINGS[to_run->command_type]);
+  this->commands_.pop_front();
 
-  if (buf[0] == 1) {
-    std::string payload = reinterpret_cast<char *>(&buf[1]);
-    if (!payload.empty()) {
-      switch (to_run->command_type) {
-        case EzoCommandType::EZO_READ: {
-          // some sensors return multiple comma-separated values, terminate string after first one
-          int start_location = 0;
-          if ((start_location = payload.find(',')) != std::string::npos) {
-            payload.erase(start_location);
-          }
-          auto val = parse_number<float>(payload);
-          if (!val.has_value()) {
-            ESP_LOGW(TAG, "Can't convert '%s' to number!", payload.c_str());
-          } else {
-            this->publish_state(*val);
-          }
-          break;
-        }
-        case EzoCommandType::EZO_LED: {
-          this->led_callback_.call(payload.back() == '1');
-          break;
-        }
-        case EzoCommandType::EZO_DEVICE_INFORMATION: {
-          int start_location = 0;
-          if ((start_location = payload.find(',')) != std::string::npos) {
-            this->device_infomation_callback_.call(payload.substr(start_location + 1));
-          }
-          break;
-        }
-        case EzoCommandType::EZO_SLOPE: {
-          int start_location = 0;
-          if ((start_location = payload.find(',')) != std::string::npos) {
-            this->slope_callback_.call(payload.substr(start_location + 1));
-          }
-          break;
-        }
-        case EzoCommandType::EZO_CALIBRATION: {
-          int start_location = 0;
-          if ((start_location = payload.find(',')) != std::string::npos) {
-            this->calibration_callback_.call(payload.substr(start_location + 1));
-          }
-          break;
-        }
-        case EzoCommandType::EZO_T: {
-          int start_location = 0;
-          if ((start_location = payload.find(',')) != std::string::npos) {
-            this->t_callback_.call(payload.substr(start_location + 1));
-          }
-          break;
-        }
-        case EzoCommandType::EZO_CUSTOM: {
-          this->custom_callback_.call(payload);
-          break;
-        }
-        default: {
-          break;
-        }
-      }
-    }
+  if (buf[0] != 1)
+    return;
+
+  std::string payload = reinterpret_cast<char *>(&buf[1]);
+
+  if (to_run->callback != nullptr) {
+    to_run->callback(payload);
+    return;
   }
 
-  this->commands_.pop_front();
+  if (payload.empty())
+    return;
+
+  switch (to_run->command_type) {
+    case EzoCommandType::EZO_READ: {
+      // some sensors return multiple comma-separated values, terminate string after first one
+      int start_location = 0;
+      if ((start_location = payload.find(',')) != std::string::npos) {
+        payload.erase(start_location);
+      }
+      auto val = parse_number<float>(payload);
+      if (!val.has_value()) {
+        ESP_LOGW(TAG, "Can't convert '%s' to number!", payload.c_str());
+      } else {
+        //this->publish_state(*val);
+      }
+      break;
+    }
+    case EzoCommandType::EZO_LED: {
+      this->led_callback_.call(payload.back() == '1');
+      break;
+    }
+    case EzoCommandType::EZO_DEVICE_INFORMATION: {
+      this->device_infomation_callback_.call(payload.substr(3));
+      break;
+    }
+    case EzoCommandType::EZO_SLOPE: {
+      int start_location = 0;
+      if ((start_location = payload.find(',')) != std::string::npos) {
+        this->slope_callback_.call(payload.substr(start_location + 1));
+      }
+      break;
+    }
+    case EzoCommandType::EZO_CALIBRATION: {
+      int start_location = 0;
+      if ((start_location = payload.find(',')) != std::string::npos) {
+        this->calibration_callback_.call(payload.substr(start_location + 1));
+      }
+      break;
+    }
+    case EzoCommandType::EZO_T: {
+      int start_location = 0;
+      if ((start_location = payload.find(',')) != std::string::npos) {
+        this->t_callback_.call(payload.substr(start_location + 1));
+      }
+      break;
+    }
+    case EzoCommandType::EZO_CUSTOM: {
+      this->custom_callback_.call(payload);
+      break;
+    }
+    default: {
+      break;
+    }
+  }
 }
 
-void EZOSensor::add_command_(const std::string &command, EzoCommandType command_type, uint16_t delay_ms) {
+void EZOSensor::add_command_(const std::string &command, EzoCommandType command_type, uint16_t delay_ms, std::function<void(std::string)> &&callback) {
   std::unique_ptr<EzoCommand> ezo_command(new EzoCommand);
   ezo_command->command = command;
   ezo_command->command_type = command_type;
   ezo_command->delay_ms = delay_ms;
+  ezo_command->callback = std::move(callback);
   this->commands_.push_back(std::move(ezo_command));
 };
 
@@ -242,6 +235,75 @@ void EZOSensor::set_led_state(bool on) {
 }
 
 void EZOSensor::send_custom(const std::string &to_send) { this->add_command_(to_send, EzoCommandType::EZO_CUSTOM); }
+
+void EZOSensor::send_internal_(const std::string &to_send, std::function<void(std::string)> &&callback) {
+  this->add_command_(to_send, EzoCommandType::EZO_INTERNAL, 300, std::move(callback));
+}
+
+void EZOSensorSingle::dump_config() {
+  LOG_SENSOR("", "EZO", this);
+  this->dump_common_();
+}
+
+void EZOSensorSingle::handle_data_() {
+  this->publish_state(this->data_[0]);
+}
+
+void EZOSensorMulti::handle_data_() {
+  int n = std::min(this->data_.size(), this->sensors_.size());
+  if (n < this->sensors_.size())
+    ESP_LOGW(TAG, "received only %d/%d values", n, this->sensors_.size());
+  for (int i = 0; i < n; i++)
+    this->sensors_[i]->publish_state(this->data_[i]);
+}
+
+void EZOSensorDO::handle_data_() {
+  if (this->data_.size() < 2) {
+    ESP_LOGW(TAG, "received only %d/2 values, resetting data selection", this->data_.size());
+    this->send_internal_("O,mg,1");
+    this->send_internal_("O,%,1");
+    return;
+  }
+  if (this->mg_sensor_ != nullptr)
+    this->mg_sensor_->publish_state(this->data_[0]);
+  if (this->percent_sensor_ != nullptr)
+    this->percent_sensor_->publish_state(this->data_[1]);
+}
+
+void EZOSensorEC::handle_data_() {
+  if (this->data_.size() < 4) {
+    ESP_LOGW(TAG, "received only %d/4 values, resetting data selection", this->data_.size());
+    this->send_internal_("O,EC,1");
+    this->send_internal_("O,TDS,1");
+    this->send_internal_("O,S,1");
+    this->send_internal_("O,SG,1");
+    return;
+  }
+  if (this->conductivity_sensor_ != nullptr)
+    this->conductivity_sensor_->publish_state(this->data_[0]);
+  if (this->tds_sensor_ != nullptr)
+    this->tds_sensor_->publish_state(this->data_[1]);
+  if (this->salinity_sensor_ != nullptr)
+    this->salinity_sensor_->publish_state(this->data_[2]);
+  if (this->specific_gravity_sensor_ != nullptr)
+    this->specific_gravity_sensor_->publish_state(this->data_[3]);
+}
+
+void EZOSensorFLO::setup() {
+}
+
+void EZOSensorFLO::handle_data_() {
+  if (this->data_.size() < 2) {
+    ESP_LOGW(TAG, "received only %d/2 values, resetting data selection", this->data_.size());
+    this->send_internal_("O,TV,1");
+    this->send_internal_("O,FR,1");
+    return;
+  }
+  if (this->total_volume_sensor_ != nullptr)
+    this->total_volume_sensor_->publish_state(this->data_[0]);
+  if (this->flow_rate_sensor_ != nullptr)
+    this->flow_rate_sensor_->publish_state(this->data_[1]);
+}
 
 }  // namespace ezo
 }  // namespace esphome
