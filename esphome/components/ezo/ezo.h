@@ -8,8 +8,6 @@
 namespace esphome {
 namespace ezo {
 
-static const char *const TAG = "ezo.sensor";
-
 enum EzoCommandType : uint8_t {
   EZO_READ = 0,
   EZO_LED,
@@ -19,7 +17,8 @@ enum EzoCommandType : uint8_t {
   EZO_SLEEP,
   EZO_I2C,
   EZO_T,
-  EZO_CUSTOM
+  EZO_CUSTOM,
+  EZO_INTERNAL
 };
 
 enum EzoCalibrationType : uint8_t { EZO_CAL_LOW = 0, EZO_CAL_MID = 1, EZO_CAL_HIGH = 2 };
@@ -29,14 +28,16 @@ class EzoCommand {
   std::string command;
   uint16_t delay_ms = 0;
   bool command_sent = false;
+  bool internal = false;
+  std::function<void(std::string)> &&callback{nullptr};
   EzoCommandType command_type;
 };
 
 /// This class implements support for the EZO circuits in i2c mode
-class EZOSensor : public sensor::Sensor, public PollingComponent, public i2c::I2CDevice {
+class EZOSensor : public PollingComponent, public i2c::I2CDevice {
  public:
+  void setup() override;
   void loop() override;
-  void dump_config() override;
   void update() override;
   float get_setup_priority() const override { return setup_priority::DATA; };
 
@@ -90,10 +91,16 @@ class EZOSensor : public sensor::Sensor, public PollingComponent, public i2c::I2
   }
 
  protected:
+  void dump_common_();
+  virtual void handle_data_() = 0;
   std::deque<std::unique_ptr<EzoCommand>> commands_;
   int new_address_;
+  std::vector<float> data_;
+  std::string device_name_;
+  std::string version_;
 
-  void add_command_(const std::string &command, EzoCommandType command_type, uint16_t delay_ms = 300);
+  void add_command_(const std::string &command, EzoCommandType command_type, uint16_t delay_ms = 300, std::function<void(std::string)> &&callback = nullptr);
+  void send_internal_(const std::string &to_send, std::function<void(std::string)> &&callback = nullptr);
 
   void set_calibration_point_(EzoCalibrationType type, float value);
 
@@ -105,6 +112,56 @@ class EZOSensor : public sensor::Sensor, public PollingComponent, public i2c::I2
   CallbackManager<void(bool)> led_callback_{};
 
   uint32_t start_time_ = 0;
+};
+
+class EZOSensorSingle : public EZOSensor, public sensor::Sensor {
+ public:
+  void dump_config() override;
+ protected:
+  void handle_data_();
+};
+
+class EZOSensorMulti : public EZOSensor {
+ public:
+  void set_sensors(std::vector<sensor::Sensor *> sensors) { this->sensors_ = std::move(sensors); }
+ protected:
+  void handle_data_();
+  std::vector<sensor::Sensor *> sensors_;
+};
+
+class EZOSensorDO : public EZOSensor {
+ public:
+  void set_mg_sensor(sensor::Sensor * sensor) { this->mg_sensor_ = sensor; }
+  void set_percent_sensor(sensor::Sensor * sensor) { this->percent_sensor_ = sensor; }
+ protected:
+  void handle_data_();
+  sensor::Sensor *mg_sensor_{nullptr};
+  sensor::Sensor *percent_sensor_{nullptr};
+};
+
+class EZOSensorFLO : public EZOSensor {
+ public:
+  void setup() override;
+  void set_flow_rate_sensor(sensor::Sensor * sensor) { this->flow_rate_sensor_ = sensor; }
+  void set_total_volume_sensor(sensor::Sensor * sensor) { this->total_volume_sensor_ = sensor; }
+ protected:
+  void handle_data_();
+  sensor::Sensor *flow_rate_sensor_{nullptr};
+  sensor::Sensor *total_volume_sensor_{nullptr};
+};
+
+class EZOSensorEC : public EZOSensor {
+ public:
+  void set_conductivity_sensor(sensor::Sensor * sensor) { this->conductivity_sensor_ = sensor; }
+  void set_tds_sensor(sensor::Sensor * sensor) { this->tds_sensor_ = sensor; }
+  void set_salinity_sensor(sensor::Sensor * sensor) { this->salinity_sensor_ = sensor; }
+  void set_specific_gravity_sensor(sensor::Sensor * sensor) { this->specific_gravity_sensor_ = sensor; }
+ protected:
+  void handle_data_();
+  sensor::Sensor *conductivity_sensor_{nullptr};
+  sensor::Sensor *tds_sensor_{nullptr};
+  sensor::Sensor *salinity_sensor_{nullptr};
+  sensor::Sensor *specific_gravity_sensor_{nullptr};
 };
 
 }  // namespace ezo
