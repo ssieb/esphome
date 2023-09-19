@@ -47,6 +47,7 @@ class ADS1115Component : public Component, public i2c::I2CDevice {
  protected:
   uint16_t prev_config_{0};
   bool continuous_mode_;
+  bool claimed_{false};
 };
 
 }  // namespace ads1115

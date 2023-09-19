@@ -17,6 +17,13 @@ void CTClampSensor::dump_config() {
 
 void CTClampSensor::update() {
   // Update only starts the sampling phase, in loop() the actual sampling is happening.
+  this->update_waiting_ = true;
+}
+
+void CTClampSensor::start_sampling_() {
+  if (!this->source_->claim())
+    return;
+  this->update_waiting_ = false;
 
   // Request a high loop() execution interval during sampling phase.
   this->high_freq_.start();
@@ -25,6 +32,7 @@ void CTClampSensor::update() {
   this->set_timeout("read", this->sample_duration_, [this]() {
     this->is_sampling_ = false;
     this->high_freq_.stop();
+    this->source_->release();
 
     if (this->num_samples_ == 0) {
       // Shouldn't happen, but let's not crash if it does.
@@ -52,6 +60,9 @@ void CTClampSensor::update() {
 }
 
 void CTClampSensor::loop() {
+  if (this->update_waiting_)
+    start_sampling_();
+
   if (!this->is_sampling_)
     return;
 

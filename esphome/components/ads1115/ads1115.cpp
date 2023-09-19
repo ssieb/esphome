@@ -69,6 +69,7 @@ void ADS1115Component::setup() {
   }
   this->prev_config_ = config;
 }
+
 void ADS1115Component::dump_config() {
   ESP_LOGCONFIG(TAG, "Setting up ADS1115...");
   LOG_I2C_DEVICE(this);
