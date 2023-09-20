@@ -10,8 +10,8 @@ class VoltageSampler {
  public:
   /// Get a voltage reading, in V.
   virtual float sample() = 0;
-  virtual bool claim() = 0;
-  virtual void release() = 0;
+  virtual bool claim() { return true; }
+  virtual void release() {};
 };
 
 }  // namespace voltage_sampler
