@@ -244,6 +244,11 @@ void ESP32Camera::set_i2c_pins(uint8_t sda, uint8_t scl) {
   this->config_.pin_sccb_scl = scl;
 #endif
 }
+void ESP32Camera::set_i2c_bus(i2c::I2CBus *bus) {
+  this->config_.pin_sccb_sda = -1;
+  this->config_.pin_sccb_scl = -1;
+  this->config_.sccb_i2c_port = 0;
+}
 void ESP32Camera::set_reset_pin(uint8_t pin) { this->config_.pin_reset = pin; }
 void ESP32Camera::set_power_down_pin(uint8_t pin) { this->config_.pin_pwdn = pin; }
 

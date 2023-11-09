@@ -5,9 +5,8 @@ from esphome import pins
 from esphome.const import (
     CONF_FREQUENCY,
     CONF_ID,
+    CONF_I2C_ID,
     CONF_PIN,
-    CONF_SCL,
-    CONF_SDA,
     CONF_DATA_PINS,
     CONF_RESET_PIN,
     CONF_RESOLUTION,
@@ -16,6 +15,7 @@ from esphome.const import (
     CONF_TRIGGER_ID,
 )
 from esphome.core import CORE
+from esphome.components import i2c
 from esphome.components.esp32 import add_idf_sdkconfig_option
 from esphome.cpp_helpers import setup_entity
 
@@ -160,12 +160,7 @@ CONFIG_SCHEMA = cv.ENTITY_BASE_SCHEMA.extend(
                 ),
             }
         ),
-        cv.Required(CONF_I2C_PINS): cv.Schema(
-            {
-                cv.Required(CONF_SDA): pins.internal_gpio_output_pin_number,
-                cv.Required(CONF_SCL): pins.internal_gpio_output_pin_number,
-            }
-        ),
+        cv.GenerateID(CONF_I2C_ID): cv.use_id(i2c.I2CBus),
         cv.Optional(CONF_RESET_PIN): pins.internal_gpio_output_pin_number,
         cv.Optional(CONF_POWER_DOWN_PIN): pins.internal_gpio_output_pin_number,
         # image
@@ -267,8 +262,10 @@ async def to_code(config):
 
     extclk = config[CONF_EXTERNAL_CLOCK]
     cg.add(var.set_external_clock(extclk[CONF_PIN], extclk[CONF_FREQUENCY]))
-    i2c_pins = config[CONF_I2C_PINS]
-    cg.add(var.set_i2c_pins(i2c_pins[CONF_SDA], i2c_pins[CONF_SCL]))
+    # i2c_pins = config[CONF_I2C_PINS]
+    # cg.add(var.set_i2c_pins(i2c_pins[CONF_SDA], i2c_pins[CONF_SCL]))
+    bus = await cg.get_variable(config[CONF_I2C_ID])
+    cg.add(var.set_i2c_bus(bus))
     cg.add(var.set_max_update_interval(1000 / config[CONF_MAX_FRAMERATE]))
     if config[CONF_IDLE_FRAMERATE] == 0:
         cg.add(var.set_idle_update_interval(0))

@@ -30,6 +30,8 @@ class IDFI2CBus : public I2CBus, public Component {
   void set_scl_pullup_enabled(bool scl_pullup_enabled) { scl_pullup_enabled_ = scl_pullup_enabled; }
   void set_frequency(uint32_t frequency) { frequency_ = frequency; }
 
+  i2c_port_t get_port() { return port_; }
+
  private:
   void recover_();
   RecoveryCode recovery_result_;

@@ -6,6 +6,7 @@
 #include "esphome/core/component.h"
 #include "esphome/core/entity_base.h"
 #include "esphome/core/helpers.h"
+#include "esphome/components/i2c/i2c.h"
 #include <esp_camera.h>
 #include <freertos/FreeRTOS.h>
 #include <freertos/queue.h>
@@ -113,6 +114,7 @@ class ESP32Camera : public Component, public EntityBase {
   void set_pixel_clock_pin(uint8_t pin);
   void set_external_clock(uint8_t pin, uint32_t frequency);
   void set_i2c_pins(uint8_t sda, uint8_t scl);
+  void set_i2c_bus(i2c::I2CBus *bus);
   void set_reset_pin(uint8_t pin);
   void set_power_down_pin(uint8_t pin);
   /* -- image */
