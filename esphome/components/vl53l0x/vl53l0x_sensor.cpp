@@ -291,9 +291,15 @@ void VL53L0XSensor::loop() {
       // wait until reg(0x13) & 0x07 is set
       this->initiated_read_ = false;
       this->waiting_for_interrupt_ = true;
+      this->wait_start_ = millis();
     }
   }
   if (this->waiting_for_interrupt_) {
+    if (millis() - this->wait_start_ > 500) {
+      this->waiting_for_interrupt_ = false;
+      ESP_LOGW(TAG, "timed out waiting for result");
+      return;
+    }
     if (reg(0x13).get() & 0x07) {
       uint16_t range_mm = 0;
       this->read_byte_16(0x14 + 10, &range_mm);
