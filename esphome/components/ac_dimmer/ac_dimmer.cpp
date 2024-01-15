@@ -88,7 +88,7 @@ uint32_t IRAM_ATTR HOT timer_interrupt() {
 
 /// GPIO interrupt routine, called when ZC pin triggers
 void IRAM_ATTR HOT AcDimmerDataStore::gpio_intr() {
-  if (this->zero_cross_pin_.digital_read())
+  if (this->zero_cross_pin.digital_read())
     return;
   uint32_t prev_crossed = this->crossed_zero_at;
 
