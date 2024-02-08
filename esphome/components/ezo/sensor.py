@@ -1,22 +1,29 @@
-import esphome.codegen as cg
-import esphome.config_validation as cv
 from esphome import automation
+import esphome.codegen as cg
 from esphome.components import i2c, sensor
+import esphome.config_validation as cv
 from esphome.const import (
-    CONF_ID,
     # CONF_CO2,
     CONF_CONDUCTIVITY,
     CONF_EC,
+    CONF_HOUR,
     CONF_HUMIDITY,
+    CONF_ID,
+    CONF_MINUTE,
+    CONF_PERIOD,
     CONF_PH,
+    CONF_SECOND,
     CONF_SENSORS,
     CONF_TEMPERATURE,
     CONF_TRIGGER_ID,
     CONF_TYPE,
+    CONF_UNIT_OF_MEASUREMENT,
     DEVICE_CLASS_EMPTY,
     DEVICE_CLASS_HUMIDITY,
     DEVICE_CLASS_TEMPERATURE,
     DEVICE_CLASS_VOLTAGE,
+    DEVICE_CLASS_VOLUME,
+    DEVICE_CLASS_VOLUME_FLOW_RATE,
     ICON_EMPTY,
     ICON_FLASH,
     ICON_PERCENT,
@@ -49,12 +56,19 @@ CONF_RGB = "rgb"
 CONF_RTD = "rtd"
 
 CONF_DEWPOINT = "dewpoint"
+CONF_FLOW_RATE = "flow_rate"
 CONF_PERCENT = "percent"
 CONF_SALINITY = "salinity"
 CONF_SPECIFIC_GRAVITY = "specific_gravity"
 CONF_TOTAL_DISSOLVED_SOLIDS = "total_dissolved_solids"
+CONF_TOTAL_VOLUME = "total_volume"
 
 ICON_SIGMA = "mdi:sigma-lower"
+
+UNIT_LITER = "l"
+UNIT_LITERS_PER_HOUR = "l/h"
+UNIT_LITERS_PER_MINUTE = "l/min"
+UNIT_LITERS_PER_SECOND = "l/s"
 
 CONF_ON_LED = "on_led"
 CONF_ON_DEVICE_INFORMATION = "on_device_information"
@@ -159,25 +173,6 @@ CONFIG_SCHEMA = cv.typed_schema(
                 ),
             }
         ).extend(i2c.i2c_device_schema(97)),
-        CONF_FLO: BASE_SCHEMA.extend(
-            {
-                cv.GenerateID(): cv.declare_id(EZOSensorFLO),
-                cv.Optional(CONF_MG): sensor.sensor_schema(
-                    accuracy_decimals=2,
-                    device_class=DEVICE_CLASS_EMPTY,
-                    icon=ICON_EMPTY,
-                    state_class=STATE_CLASS_MEASUREMENT,
-                    unit_of_measurement=UNIT_MILLIGRAMS_PER_CUBIC_METER,
-                ),
-                cv.Optional(CONF_PERCENT): sensor.sensor_schema(
-                    accuracy_decimals=2,
-                    device_class=DEVICE_CLASS_EMPTY,
-                    icon=ICON_PERCENT,
-                    state_class=STATE_CLASS_MEASUREMENT,
-                    unit_of_measurement=UNIT_PERCENT,
-                ),
-            }
-        ).extend(i2c.i2c_device_schema(104)),
         CONF_EC: BASE_SCHEMA.extend(
             {
                 cv.GenerateID(): cv.declare_id(EZOSensorEC),
@@ -211,6 +206,28 @@ CONFIG_SCHEMA = cv.typed_schema(
                 ),
             }
         ).extend(i2c.i2c_device_schema(100)),
+        CONF_FLO: BASE_SCHEMA.extend(
+            {
+                cv.GenerateID(): cv.declare_id(EZOSensorFLO),
+                cv.Optional(CONF_TOTAL_VOLUME): sensor.sensor_schema(
+                    accuracy_decimals=2,
+                    device_class=DEVICE_CLASS_VOLUME,
+                    icon=ICON_EMPTY,
+                    state_class=STATE_CLASS_MEASUREMENT,
+                    unit_of_measurement=UNIT_LITER,
+                ),
+                cv.Inclusive(CONF_FLOW_RATE, "flow rate"): sensor.sensor_schema(
+                    accuracy_decimals=2,
+                    device_class=DEVICE_CLASS_VOLUME_FLOW_RATE,
+                    icon=ICON_PERCENT,
+                    state_class=STATE_CLASS_MEASUREMENT,
+                    unit_of_measurement=None,
+                ),
+                cv.Inclusive(CONF_PERIOD, "flow rate"): cv.one_of(
+                    CONF_SECOND, CONF_MINUTE, CONF_HOUR, lower=True
+                ),
+            }
+        ).extend(i2c.i2c_device_schema(104)),
         CONF_HUM: BASE_SCHEMA.extend(
             {
                 cv.Optional(CONF_HUMIDITY): sensor.sensor_schema(
@@ -267,7 +284,6 @@ CONFIG_SCHEMA = cv.typed_schema(
             )
         ).extend(i2c.i2c_device_schema(102)),
     },
-    default_type=CONF_SINGLE,
     lower=True,
 )
 
@@ -303,6 +319,20 @@ async def to_code(config):
         if conf := config.get(CONF_SPECIFIC_GRAVITY):
             sens = await sensor.new_sensor(conf)
             cg.add(var.set_specific_gravity_sensor(sens))
+    elif ezo_type == CONF_FLO:
+        if conf := config.get(CONF_TOTAL_VOLUME):
+            sens = await sensor.new_sensor(conf)
+            cg.add(var.set_total_volume_sensor(sens))
+        if conf := config.get(CONF_FLOW_RATE):
+            period = conf[CONF_PERIOD]
+            if period == "second":
+                conf[CONF_UNIT_OF_MEASUREMENT] = UNIT_LITERS_PER_SECOND
+            elif period == "minute":
+                conf[CONF_UNIT_OF_MEASUREMENT] = UNIT_LITERS_PER_MINUTE
+            else:
+                conf[CONF_UNIT_OF_MEASUREMENT] = UNIT_LITERS_PER_HOUR
+            sens = await sensor.new_sensor(conf)
+            cg.add(var.set_flow_rate_sensor(sens, ord(period[0])))
 
     for conf in config.get(CONF_ON_CUSTOM, []):
         trigger = cg.new_Pvariable(conf[CONF_TRIGGER_ID], var)

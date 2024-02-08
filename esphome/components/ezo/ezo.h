@@ -139,17 +139,6 @@ class EZOSensorDO : public EZOSensor {
   sensor::Sensor *percent_sensor_{nullptr};
 };
 
-class EZOSensorFLO : public EZOSensor {
- public:
-  void setup() override;
-  void set_flow_rate_sensor(sensor::Sensor * sensor) { this->flow_rate_sensor_ = sensor; }
-  void set_total_volume_sensor(sensor::Sensor * sensor) { this->total_volume_sensor_ = sensor; }
- protected:
-  void handle_data_();
-  sensor::Sensor *flow_rate_sensor_{nullptr};
-  sensor::Sensor *total_volume_sensor_{nullptr};
-};
-
 class EZOSensorEC : public EZOSensor {
  public:
   void set_conductivity_sensor(sensor::Sensor * sensor) { this->conductivity_sensor_ = sensor; }
@@ -162,6 +151,21 @@ class EZOSensorEC : public EZOSensor {
   sensor::Sensor *tds_sensor_{nullptr};
   sensor::Sensor *salinity_sensor_{nullptr};
   sensor::Sensor *specific_gravity_sensor_{nullptr};
+};
+
+class EZOSensorFLO : public EZOSensor {
+ public:
+  void setup() override;
+  void set_flow_rate_sensor(sensor::Sensor * sensor, uint8_t period) {
+    this->flow_rate_sensor_ = sensor;
+    this->flow_rate_period_ = period;
+  }
+  void set_total_volume_sensor(sensor::Sensor * sensor) { this->total_volume_sensor_ = sensor; }
+ protected:
+  void handle_data_();
+  sensor::Sensor *flow_rate_sensor_{nullptr};
+  sensor::Sensor *total_volume_sensor_{nullptr};
+  uint8_t flow_rate_period_;
 };
 
 }  // namespace ezo
