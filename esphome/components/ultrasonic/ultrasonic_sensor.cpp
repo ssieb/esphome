@@ -9,16 +9,33 @@ static const char *const TAG = "ultrasonic.sensor";
 
 void UltrasonicSensorComponent::setup() {
   ESP_LOGCONFIG(TAG, "Setting up Ultrasonic Sensor...");
-  this->trigger_pin_->setup();
-  this->trigger_pin_->digital_write(false);
-  this->echo_pin_->setup();
-  // isr is faster to access
-  echo_isr_ = echo_pin_->to_isr();
+  if (this->signal_pin_ != nullptr) {
+    this->signal_pin_->setup();
+    this->signal_pin_->digital_write(false);
+    echo_isr_ = signal_pin_->to_isr();
+  } else {
+    this->trigger_pin_->setup();
+    this->trigger_pin_->digital_write(false);
+    this->echo_pin_->setup();
+    // isr is faster to access
+    echo_isr_ = echo_pin_->to_isr();
+  }
 }
 void UltrasonicSensorComponent::update() {
-  this->trigger_pin_->digital_write(true);
+  if (this->signal_pin_ != nullptr) {
+    this->signal_pin_->pin_mode(gpio::FLAG_OUTPUT);
+    this->signal_pin_->digital_write(true);
+  } else {
+    this->trigger_pin_->digital_write(true);
+  }
   delayMicroseconds(this->pulse_time_us_);
-  this->trigger_pin_->digital_write(false);
+  if (this->signal_pin_ != nullptr) {
+    this->trigger_pin_->digital_write(false);
+    delayMicroseconds(200);
+    this->signal_pin_->pin_mode(gpio::FLAG_INPUT);
+  } else {
+    this->trigger_pin_->digital_write(false);
+  }
 
   const uint32_t start = micros();
   while (micros() - start < timeout_us_ && echo_isr_.digital_read())

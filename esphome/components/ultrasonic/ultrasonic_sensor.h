@@ -13,6 +13,7 @@ class UltrasonicSensorComponent : public sensor::Sensor, public PollingComponent
  public:
   void set_trigger_pin(GPIOPin *trigger_pin) { trigger_pin_ = trigger_pin; }
   void set_echo_pin(InternalGPIOPin *echo_pin) { echo_pin_ = echo_pin; }
+  void set_signal_pin(InternalGPIOPin *signal_pin) { signal_pin_ = signal_pin; }
 
   /// Set the timeout for waiting for the echo in µs.
   void set_timeout_us(uint32_t timeout_us);
@@ -35,8 +36,9 @@ class UltrasonicSensorComponent : public sensor::Sensor, public PollingComponent
   static float us_to_m(uint32_t us);
   /// Helper function to convert the specified distance in meters to the echo duration in µs.
 
-  GPIOPin *trigger_pin_;
-  InternalGPIOPin *echo_pin_;
+  GPIOPin *trigger_pin_{nullptr};
+  InternalGPIOPin *echo_pin_{nullptr};
+  InternalGPIOPin *signal_pin_{nullptr};
   ISRInternalGPIOPin echo_isr_;
   uint32_t timeout_us_{};  /// 2 meters.
   uint32_t pulse_time_us_{};
