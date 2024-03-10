@@ -32,6 +32,7 @@ class APIServer : public Component, public Controller {
   void set_port(uint16_t port);
   void set_password(const std::string &password);
   void set_reboot_timeout(uint32_t reboot_timeout);
+  void set_shutdown_delay(uint32_t shutdown_delay) { this->shutdown_delay_ = shutdown_delay; }
 
 #ifdef USE_API_NOISE
   void set_noise_psk(psk_t psk) { noise_ctx_->set_psk(psk); }
@@ -110,6 +111,7 @@ class APIServer : public Component, public Controller {
   std::unique_ptr<socket::Socket> socket_ = nullptr;
   uint16_t port_{6053};
   uint32_t reboot_timeout_{300000};
+  uint32_t shutdown_delay_{10};
   uint32_t last_connected_{0};
   std::vector<std::unique_ptr<APIConnection>> clients_;
   std::string password_;

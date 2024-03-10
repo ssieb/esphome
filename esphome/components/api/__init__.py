@@ -47,6 +47,7 @@ SERVICE_ARG_NATIVE_TYPES = {
     "string[]": cg.std_vector.template(cg.std_string),
 }
 CONF_ENCRYPTION = "encryption"
+CONF_SHUTDOWN_DELAY = "shutdown_delay"
 
 
 def validate_encryption_key(value):
@@ -70,6 +71,9 @@ CONFIG_SCHEMA = cv.Schema(
         cv.Optional(CONF_PASSWORD, default=""): cv.string_strict,
         cv.Optional(
             CONF_REBOOT_TIMEOUT, default="15min"
+        ): cv.positive_time_period_milliseconds,
+        cv.Optional(
+            CONF_SHUTDOWN_DELAY, default="10ms"
         ): cv.positive_time_period_milliseconds,
         cv.Optional(CONF_SERVICES): automation.validate_automation(
             {
@@ -107,6 +111,7 @@ async def to_code(config):
     cg.add(var.set_port(config[CONF_PORT]))
     cg.add(var.set_password(config[CONF_PASSWORD]))
     cg.add(var.set_reboot_timeout(config[CONF_REBOOT_TIMEOUT]))
+    cg.add(var.set_shutdown_delay(config[CONF_SHUTDOWN_DELAY]))
 
     for conf in config.get(CONF_SERVICES, []):
         template_args = []
