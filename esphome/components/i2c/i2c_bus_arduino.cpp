@@ -201,6 +201,7 @@ void ArduinoI2CBus::recover_() {
   // The actual frequency will be lower, because of the additional
   // function calls that are done, but that is no problem.
   const auto half_period_usec = 1000000 / 100000 / 2;
+  ESP_LOGD(TAG, "delay is %u", half_period_usec);
 
   // Activate input and pull up resistor for the SCL pin.
   pinMode(scl_pin_, INPUT_PULLUP);  // NOLINT
@@ -227,6 +228,7 @@ void ArduinoI2CBus::recover_() {
   // case other code has setup the pin for a HIGH signal.
   digitalWrite(scl_pin_, LOW);  // NOLINT
 
+  ESP_LOGD(TAG, "starting detection");
   delayMicroseconds(half_period_usec);
   for (auto i = 0; i < 9; i++) {
     // Release pull up resistor and switch to output to make the signal LOW.
@@ -257,6 +259,7 @@ void ArduinoI2CBus::recover_() {
       return;
     }
   }
+  ESP_LOGD(TAG, "finished first detection");
 
   // Activate input and pull resistor for the SDA pin, so we can verify
   // that SDA is pulled HIGH in the following step.
@@ -271,6 +274,7 @@ void ArduinoI2CBus::recover_() {
     recovery_result_ = RECOVERY_FAILED_SDA_LOW;
     return;
   }
+  ESP_LOGD(TAG, "finished second detection");
 
   // From the specification:
   // "I2C-bus compatible devices must reset their bus logic on receipt of
@@ -298,6 +302,7 @@ void ArduinoI2CBus::recover_() {
   pinMode(sda_pin_, INPUT_PULLUP);  // NOLINT
 
   recovery_result_ = RECOVERY_COMPLETED;
+  ESP_LOGD(TAG, "recovery complete");
 }
 }  // namespace i2c
 }  // namespace esphome
