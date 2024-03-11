@@ -37,13 +37,16 @@ void ArduinoI2CBus::setup() {
   }
 #endif
 
+  ESP_LOGD(TAG, "setting up pins");
   this->set_pins_and_clock_();
+  ESP_LOGD(TAG, "pins setup complete");
 
   this->initialized_ = true;
   if (this->scan_) {
     ESP_LOGV(TAG, "Scanning i2c bus for active devices...");
     this->i2c_scan_();
   }
+  ESP_LOGD(TAG, "setup complete");
 }
 
 void ArduinoI2CBus::set_pins_and_clock_() {
