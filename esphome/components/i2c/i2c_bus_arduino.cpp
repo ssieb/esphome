@@ -14,6 +14,7 @@ static const char *const TAG = "i2c.arduino";
 
 void ArduinoI2CBus::setup() {
   recover_();
+  ESP_LOGD(TAG, "recovery complete");
 
 #if defined(USE_ESP32)
   static uint8_t next_bus_num = 0;
@@ -22,6 +23,7 @@ void ArduinoI2CBus::setup() {
   } else {
     wire_ = new TwoWire(next_bus_num);  // NOLINT(cppcoreguidelines-owning-memory)
   }
+  ESP_LOGD(TAG, "arduino bus created");
   next_bus_num++;
 #elif defined(USE_ESP8266)
   wire_ = new TwoWire();  // NOLINT(cppcoreguidelines-owning-memory)
