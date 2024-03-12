@@ -12,13 +12,13 @@ void UltrasonicSensorComponent::setup() {
   if (this->signal_pin_ != nullptr) {
     this->signal_pin_->setup();
     this->signal_pin_->digital_write(false);
-    echo_isr_ = signal_pin_->to_isr();
+    this->echo_isr_ = this->signal_pin_->to_isr();
   } else {
     this->trigger_pin_->setup();
     this->trigger_pin_->digital_write(false);
     this->echo_pin_->setup();
     // isr is faster to access
-    echo_isr_ = echo_pin_->to_isr();
+    this->echo_isr_ = this->echo_pin_->to_isr();
   }
 }
 void UltrasonicSensorComponent::update() {
@@ -62,6 +62,7 @@ void UltrasonicSensorComponent::dump_config() {
   LOG_SENSOR("", "Ultrasonic Sensor", this);
   LOG_PIN("  Echo Pin: ", this->echo_pin_);
   LOG_PIN("  Trigger Pin: ", this->trigger_pin_);
+  LOG_PIN("  Signal Pin: ", this->signal_pin_);
   ESP_LOGCONFIG(TAG, "  Pulse time: %" PRIu32 " µs", this->pulse_time_us_);
   ESP_LOGCONFIG(TAG, "  Timeout: %" PRIu32 " µs", this->timeout_us_);
   LOG_UPDATE_INTERVAL(this);
