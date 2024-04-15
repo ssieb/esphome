@@ -55,10 +55,12 @@ extern "C"
     if (!autorange_) {
       adc1_config_channel_atten(channel1_, attenuation_);
     }
+#ifdef ADC2_CHANNEL_MAX
   } else if (channel2_ != ADC2_CHANNEL_MAX) {
     if (!autorange_) {
       adc2_config_channel_atten(channel2_, attenuation_);
     }
+#endif
   }
 
   // load characteristics for each attenuation
@@ -169,8 +171,10 @@ float ADCSensor::sample() {
     int raw = -1;
     if (channel1_ != ADC1_CHANNEL_MAX) {
       raw = adc1_get_raw(channel1_);
+#ifdef ADC2_CHANNEL_MAX
     } else if (channel2_ != ADC2_CHANNEL_MAX) {
       adc2_get_raw(channel2_, ADC_WIDTH_MAX_SOC_BITS, &raw);
+#endif
     }
 
     if (raw == -1) {
@@ -200,6 +204,7 @@ float ADCSensor::sample() {
         }
       }
     }
+#ifdef ADC2_CHANNEL_MAX
   } else if (channel2_ != ADC2_CHANNEL_MAX) {
     adc2_config_channel_atten(channel2_, ADC_ATTEN_DB_11);
     adc2_get_raw(channel2_, ADC_WIDTH_MAX_SOC_BITS, &raw11);
@@ -215,6 +220,7 @@ float ADCSensor::sample() {
         }
       }
     }
+#endif
   }
 
   if (raw0 == -1 || raw2 == -1 || raw6 == -1 || raw11 == -1) {

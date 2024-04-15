@@ -21,11 +21,13 @@ class ADCSensor : public sensor::Sensor, public PollingComponent, public voltage
   void set_attenuation(adc_atten_t attenuation) { attenuation_ = attenuation; }
   void set_channel1(adc1_channel_t channel) {
     channel1_ = channel;
+#ifdef ADC2_CHANNEL_MAX
     channel2_ = ADC2_CHANNEL_MAX;
   }
   void set_channel2(adc2_channel_t channel) {
     channel2_ = channel;
     channel1_ = ADC1_CHANNEL_MAX;
+#endif
   }
   void set_autorange(bool autorange) { autorange_ = autorange; }
 #endif
@@ -60,7 +62,9 @@ class ADCSensor : public sensor::Sensor, public PollingComponent, public voltage
 #ifdef USE_ESP32
   adc_atten_t attenuation_{ADC_ATTEN_DB_0};
   adc1_channel_t channel1_{ADC1_CHANNEL_MAX};
+#ifdef ADC2_CHANNEL_MAX
   adc2_channel_t channel2_{ADC2_CHANNEL_MAX};
+#endif
   bool autorange_{false};
 #if ESP_IDF_VERSION_MAJOR >= 5
   esp_adc_cal_characteristics_t cal_characteristics_[SOC_ADC_ATTEN_NUM] = {};
