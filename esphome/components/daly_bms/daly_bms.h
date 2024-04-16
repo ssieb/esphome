@@ -2,6 +2,7 @@
 
 #include "esphome/core/component.h"
 #include "esphome/core/defines.h"
+#include "esphome/core/helpers.h"
 #ifdef USE_SENSOR
 #include "esphome/components/sensor/sensor.h"
 #endif
@@ -72,6 +73,9 @@ class DalyBmsComponent : public PollingComponent, public uart::UARTDevice {
 
   float get_setup_priority() const override;
   void set_address(uint8_t address) { this->addr_ = address; }
+  void add_failure_callback(std::function<void(const std::vector<uint8_t> &)> &&failure_callback) {
+    this->failure_callbacks_.add(std::move(failure_callback));
+  }
 
  protected:
   void request_data_(uint8_t data_id);
@@ -85,6 +89,7 @@ class DalyBmsComponent : public PollingComponent, public uart::UARTDevice {
   uint32_t last_transmission_{0};
   bool trigger_next_;
   uint8_t next_request_;
+  CallbackManager<void(const std::vector<uint8_t> &)> failure_callbacks_{};
 };
 
 }  // namespace daly_bms

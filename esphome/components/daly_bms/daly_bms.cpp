@@ -18,6 +18,7 @@ static const uint8_t DALY_REQUEST_MOS = 0x93;
 static const uint8_t DALY_REQUEST_STATUS = 0x94;
 static const uint8_t DALY_REQUEST_CELL_VOLTAGE = 0x95;
 static const uint8_t DALY_REQUEST_TEMPERATURE = 0x96;
+static const uint8_t DALY_REQUEST_FAILURE_STATUS = 0x98;
 
 void DalyBmsComponent::setup() { this->next_request_ = 1; }
 
@@ -96,6 +97,9 @@ void DalyBmsComponent::loop() {
         this->next_request_ = 7;
         break;
       case 7:
+        this->request_data_(DALY_REQUEST_FAILURE_STATUS);
+        this->next_request_ = 8;
+        break;
       default:
         break;
     }
@@ -302,6 +306,10 @@ void DalyBmsComponent::decode_data_(std::vector<uint8_t> data) {
             }
             break;
 #endif
+          case DALY_REQUEST_FAILURE_STATUS:
+            this->failure_callbacks_.call(std::vector<uint8_t>(it + 4, it + 11));
+            break;
+
           default:
             break;
         }
