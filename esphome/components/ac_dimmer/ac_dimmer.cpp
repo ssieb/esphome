@@ -94,6 +94,10 @@ void IRAM_ATTR HOT AcDimmerDataStore::gpio_intr() {
   // in any case the cycle last at least 5ms
   this->crossed_zero_at = micros();
   uint32_t cycle_time = this->crossed_zero_at - prev_crossed;
+  if ((this->min_cycle == 0) || (cycle_time < this->min_cycle))
+    this->min_cycle = cycle_time;
+  if (cycle_time > this->max_cycle)
+    this->max_cycle = cycle_time;
   if (cycle_time > 5000) {
     this->cycle_time_us = cycle_time;
   } else {
@@ -177,6 +181,8 @@ void AcDimmer::setup() {
   this->store_.zero_cross_pin_number = this->zero_cross_pin_->get_pin();
   this->store_.zero_cross_delay = this->zero_cross_delay_;
   this->store_.min_power = static_cast<uint16_t>(this->min_power_ * 1000);
+  this->store_.min_cycle = 0;
+  this->store_.max_cycle = 0;
   this->min_power_ = 0;
   this->store_.method = this->method_;
 
@@ -203,6 +209,17 @@ void AcDimmer::setup() {
   timerAlarmEnable(dimmer_timer);
 #endif
 }
+
+void AcDimmer::loop() {
+  uint32_t now = millis();
+  if (now - this->last_log_ < 1000)
+    return;
+  ESP_LOGD(TAG, "min: %u, max: %u", this->store_.min_cycle, this->store_.max_cycle);
+  this->store_.min_cycle = 0;
+  this->store_.max_cycle = 0;
+  this->last_log_ = now;
+}
+
 void AcDimmer::write_state(float state) {
   state = std::acos(1 - (2 * state)) / 3.14159;  // RMS power compensation
   auto new_value = static_cast<uint16_t>(roundf(state * 65535));

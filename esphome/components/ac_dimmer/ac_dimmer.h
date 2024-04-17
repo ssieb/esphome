@@ -36,6 +36,8 @@ struct AcDimmerDataStore {
   bool init_cycle;
   /// Dimmer method
   DimMethod method;
+  uint32_t min_cycle;
+  uint32_t max_cycle;
 
   uint32_t timer_intr(uint32_t now);
 
@@ -49,6 +51,7 @@ struct AcDimmerDataStore {
 class AcDimmer : public output::FloatOutput, public Component {
  public:
   void setup() override;
+  void loop() override;
 
   void dump_config() override;
   void set_gate_pin(InternalGPIOPin *gate_pin) { gate_pin_ = gate_pin; }
@@ -66,6 +69,7 @@ class AcDimmer : public output::FloatOutput, public Component {
   AcDimmerDataStore store_;
   bool init_with_half_cycle_;
   DimMethod method_;
+  uint32_t last_log_{0};
 };
 
 }  // namespace ac_dimmer
