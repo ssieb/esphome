@@ -94,13 +94,14 @@ void IRAM_ATTR HOT AcDimmerDataStore::gpio_intr() {
   // in any case the cycle last at least 5ms
   this->crossed_zero_at = micros();
   uint32_t cycle_time = this->crossed_zero_at - prev_crossed;
-  if ((this->min_cycle == 0) || (cycle_time < this->min_cycle))
-    this->min_cycle = cycle_time;
-  if (cycle_time > this->max_cycle)
-    this->max_cycle = cycle_time;
   if (cycle_time > 5000) {
+    if ((this->min_cycle == 0) || (cycle_time < this->min_cycle))
+      this->min_cycle = cycle_time;
+    if (cycle_time > this->max_cycle)
+      this->max_cycle = cycle_time;
     this->cycle_time_us = cycle_time;
   } else {
+    this->bad_cycle++;
     // Otherwise this is noise and this is 2nd (or 3rd...) fall in the same pulse
     // Consider this is the right fall edge and accumulate the cycle time instead
     this->cycle_time_us += cycle_time;
@@ -214,9 +215,10 @@ void AcDimmer::loop() {
   uint32_t now = millis();
   if (now - this->last_log_ < 1000)
     return;
-  ESP_LOGD(TAG, "min: %u, max: %u", this->store_.min_cycle, this->store_.max_cycle);
+  ESP_LOGD(TAG, "min: %u, max: %u, bad: %u", this->store_.min_cycle, this->store_.max_cycle, this->store_.bad_cycle);
   this->store_.min_cycle = 0;
   this->store_.max_cycle = 0;
+  this->store_.bad_cycle = 0;
   this->last_log_ = now;
 }
 
