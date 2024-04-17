@@ -26,6 +26,8 @@ struct AcDimmerDataStore {
   uint32_t cycle_time_us;
   /// Time (in micros()) of last ZC signal
   uint32_t crossed_zero_at;
+  /// Time (in micros()) to delay after ZC signal
+  uint32_t zero_cross_delay;
   /// Time since last ZC pulse to enable gate pin. 0 means not set.
   uint32_t enable_time_us;
   /// Time since last ZC pulse to disable gate pin. 0 means no disable.
@@ -51,6 +53,7 @@ class AcDimmer : public output::FloatOutput, public Component {
   void dump_config() override;
   void set_gate_pin(InternalGPIOPin *gate_pin) { gate_pin_ = gate_pin; }
   void set_zero_cross_pin(InternalGPIOPin *zero_cross_pin) { zero_cross_pin_ = zero_cross_pin; }
+  void set_zero_cross_delay(int zero_cross_delay) { zero_cross_delay_ = zero_cross_delay; }
   void set_init_with_half_cycle(bool init_with_half_cycle) { init_with_half_cycle_ = init_with_half_cycle; }
   void set_method(DimMethod method) { method_ = method; }
 
@@ -59,6 +62,7 @@ class AcDimmer : public output::FloatOutput, public Component {
 
   InternalGPIOPin *gate_pin_;
   InternalGPIOPin *zero_cross_pin_;
+  int zero_cross_delay_;
   AcDimmerDataStore store_;
   bool init_with_half_cycle_;
   DimMethod method_;

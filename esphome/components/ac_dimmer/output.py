@@ -18,6 +18,7 @@ DIM_METHODS = {
 
 CONF_GATE_PIN = "gate_pin"
 CONF_ZERO_CROSS_PIN = "zero_cross_pin"
+CONF_ZERO_CROSS_DELAY = "zero_cross_delay"
 CONF_INIT_WITH_HALF_CYCLE = "init_with_half_cycle"
 CONFIG_SCHEMA = cv.All(
     output.FLOAT_OUTPUT_SCHEMA.extend(
@@ -25,6 +26,7 @@ CONFIG_SCHEMA = cv.All(
             cv.Required(CONF_ID): cv.declare_id(AcDimmer),
             cv.Required(CONF_GATE_PIN): pins.internal_gpio_output_pin_schema,
             cv.Required(CONF_ZERO_CROSS_PIN): pins.internal_gpio_input_pin_schema,
+            cv.Optional(CONF_ZERO_CROSS_DELAY, default=1): cv.positive_int,
             cv.Optional(CONF_INIT_WITH_HALF_CYCLE, default=True): cv.boolean,
             cv.Optional(CONF_METHOD, default="leading pulse"): cv.enum(
                 DIM_METHODS, upper=True, space="_"
@@ -48,5 +50,6 @@ async def to_code(config):
     cg.add(var.set_gate_pin(pin))
     pin = await cg.gpio_pin_expression(config[CONF_ZERO_CROSS_PIN])
     cg.add(var.set_zero_cross_pin(pin))
+    cg.add(var.set_zero_cross_delay(config[CONF_ZERO_CROSS_DELAY]))
     cg.add(var.set_init_with_half_cycle(config[CONF_INIT_WITH_HALF_CYCLE]))
     cg.add(var.set_method(config[CONF_METHOD]))
