@@ -38,6 +38,7 @@ struct AcDimmerDataStore {
   DimMethod method;
   uint32_t min_cycle;
   uint32_t max_cycle;
+  uint32_t bad_cycle;
 
   uint32_t timer_intr(uint32_t now);
 
