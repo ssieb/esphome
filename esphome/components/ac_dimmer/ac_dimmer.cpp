@@ -117,7 +117,7 @@ void IRAM_ATTR HOT AcDimmerDataStore::gpio_intr() {
   } else {
     auto min_us = this->cycle_time_us * this->min_power / 1000;
     if (this->method == DIM_METHOD_TRAILING) {
-      this->enable_time_us = 1;  // cannot be 0
+      this->enable_time_us = this->zero_cross_delay;  // cannot be 0
       // calculate time until disable in µs with integer arithmetic and take into account min_power
       this->disable_time_us = std::max((uint32_t) 10, this->value * (this->cycle_time_us - min_us) / 65535 + min_us);
     } else {
@@ -177,6 +177,7 @@ void AcDimmer::setup() {
   this->gate_pin_->setup();
   this->store_.gate_pin = this->gate_pin_->to_isr();
   this->store_.zero_cross_pin_number = this->zero_cross_pin_->get_pin();
+  this->store_.zero_cross_delay = this->zero_cross_delay_;
   this->store_.min_power = static_cast<uint16_t>(this->min_power_ * 1000);
   this->min_power_ = 0;
   this->store_.method = this->method_;
