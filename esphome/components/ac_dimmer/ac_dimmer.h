@@ -36,6 +36,7 @@ struct AcDimmerDataStore {
   bool init_cycle;
   /// Dimmer method
   DimMethod method;
+  uint32_t min_int;
   uint32_t min_cycle;
   uint32_t max_cycle;
   uint32_t bad_cycle;
