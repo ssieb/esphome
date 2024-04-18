@@ -92,9 +92,10 @@ void IRAM_ATTR HOT AcDimmerDataStore::gpio_intr() {
 
   // 50Hz mains frequency should give a half cycle of 10ms a 60Hz will give 8.33ms
   // in any case the cycle last at least 5ms
-  this->crossed_zero_at = micros();
-  uint32_t cycle_time = this->crossed_zero_at - prev_crossed;
+  uint32_t now = micros();
+  uint32_t cycle_time = now - prev_crossed;
   if (cycle_time > 5000) {
+    this->crossed_zero_at = now;
     if ((this->min_cycle == 0) || (cycle_time < this->min_cycle))
       this->min_cycle = cycle_time;
     if (cycle_time > this->max_cycle)
@@ -107,6 +108,7 @@ void IRAM_ATTR HOT AcDimmerDataStore::gpio_intr() {
     // Otherwise this is noise and this is 2nd (or 3rd...) fall in the same pulse
     // Consider this is the right fall edge and accumulate the cycle time instead
     this->cycle_time_us += cycle_time;
+    return;
   }
 
   if (this->value == 65535) {
