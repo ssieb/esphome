@@ -67,7 +67,7 @@ CONF_AUTO_CONNECT = "auto_connect"
 
 # Espressif platformio framework is built with MAX_BLE_CONN to 3, so
 # enforce this in yaml checks.
-MULTI_CONF = 3
+MULTI_CONF = True
 
 CONFIG_SCHEMA = (
     cv.Schema(
