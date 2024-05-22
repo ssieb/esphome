@@ -7,6 +7,7 @@
 #include "ota_component.h"
 #include <esp_ota_ops.h>
 #include "esphome/components/md5/md5.h"
+#include "esphome/core/log.h"
 
 #if ESP_IDF_VERSION_MAJOR >= 5
 #include <spi_flash_mmap.h>
@@ -53,6 +54,7 @@ OTAResponseTypes IDFOTABackend::begin(size_t image_size) {
 #endif
 
   if (err != ESP_OK) {
+    ESP_LOGE("OTA", "begin failed, error code: %d", err);
     esp_ota_abort(this->update_handle_);
     this->update_handle_ = 0;
     if (err == ESP_ERR_INVALID_SIZE) {
