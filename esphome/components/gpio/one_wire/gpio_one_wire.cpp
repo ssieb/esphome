@@ -85,26 +85,21 @@ bool HOT IRAM_ATTR GPIOOneWireBus::read_bit_() {
   // typically, the ds18b20 pulls the line high after 11µs for a logical 1
   // and 29µs for a logical 0
 
-  uint32_t start = micros();
   // datasheet says >1µs
   delayMicroseconds(2);
 
   // release bus, delay E
   pin_.pin_mode(gpio::FLAG_INPUT | gpio::FLAG_PULLUP);
 
-  // measure from start value directly, to get best accurate timing no matter
-  // how long pin_mode/delayMicroseconds took
-  uint32_t now = micros();
-  if (now - start < 12)
-    delayMicroseconds(12 - (now - start));
+  uint32_t start = micros();
+  bool r = true;
+  do {
+    // sample bus to read bit from peer
+    r &= pin_.digital_read();
+  } while (micros() - start < 15);
 
-  // sample bus to read bit from peer
-  bool r = pin_.digital_read();
-
-  // read slot is at least 60µs; get as close to 60µs to spend less time with interrupts locked
-  now = micros();
-  if (now - start < 60)
-    delayMicroseconds(60 - (now - start));
+  // read slot is at least 60µs
+  delayMicroseconds(45);
 
   return r;
 }
