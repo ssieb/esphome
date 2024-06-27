@@ -92,6 +92,7 @@ bool HOT IRAM_ATTR GPIOOneWireBus::read_bit_() {
   pin_.pin_mode(gpio::FLAG_INPUT | gpio::FLAG_PULLUP);
 
   uint32_t start = micros();
+  delayMicroseconds(3);
   bool r = true;
   do {
     // sample bus to read bit from peer
