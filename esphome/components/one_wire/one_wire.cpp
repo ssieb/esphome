@@ -17,6 +17,7 @@ bool OneWireDevice::send_command_(uint8_t cmd) {
   if (!this->bus_->select(this->address_))
     return false;
   this->bus_->write8(cmd);
+  delay(1);
   return true;
 }
 
