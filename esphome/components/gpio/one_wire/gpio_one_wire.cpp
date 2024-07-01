@@ -63,8 +63,8 @@ void HOT IRAM_ATTR GPIOOneWireBus::write_bit_(bool bit) {
   // time slot: t_slot: min=60µs, max=120µs
   // recovery time: t_rec: min=1µs
   // ds18b20 appears to read the bus after roughly 14µs
-  uint32_t delay0 = bit ? 6 : 60;
-  uint32_t delay1 = bit ? 59 : 5;
+  uint32_t delay0 = bit ? 5 : 60;
+  uint32_t delay1 = bit ? 60 : 10;
 
   // delay A/C
   delayMicroseconds(delay0);
@@ -86,21 +86,18 @@ bool HOT IRAM_ATTR GPIOOneWireBus::read_bit_() {
   // and 29µs for a logical 0
 
   // datasheet says >1µs
-  delayMicroseconds(2);
+  delayMicroseconds(4);
 
   // release bus, delay E
   pin_.pin_mode(gpio::FLAG_INPUT | gpio::FLAG_PULLUP);
 
   uint32_t start = micros();
-  delayMicroseconds(3);
-  bool r = true;
-  do {
-    // sample bus to read bit from peer
-    r &= pin_.digital_read();
-  } while (micros() - start < 15);
+  delayMicroseconds(10);
+  // sample bus to read bit from peer
+  bool r = pin_.digital_read();
 
   // read slot is at least 60µs
-  delayMicroseconds(45);
+  delayMicroseconds(55);
 
   return r;
 }
