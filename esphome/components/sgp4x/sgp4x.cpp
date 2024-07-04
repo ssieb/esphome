@@ -31,7 +31,7 @@ void SGP4xComponent::setup() {
     return;
   }
   this->featureset_ = raw_featureset;
-  if ((this->featureset_ & 0x1FF) == SGP40_FEATURESET) {
+  if (((this->featureset_ & 0x1FF) == SGP40_FEATURESET) || ((this->featureset_ & 0x3FF) == 0x240)) {
     sgp_type_ = SGP40;
     self_test_time_ = SPG40_SELFTEST_TIME;
     measure_time_ = SGP40_MEASURE_TIME;
@@ -58,7 +58,7 @@ void SGP4xComponent::setup() {
     }
   }
 
-  ESP_LOGD(TAG, "Product version: 0x%0X", uint16_t(this->featureset_ & 0x1FF));
+  ESP_LOGD(TAG, "Product version: 0x%0X", uint16_t(this->featureset_ & 0x3FF));
 
   if (this->store_baseline_) {
     // Hash with compilation time and serial number
