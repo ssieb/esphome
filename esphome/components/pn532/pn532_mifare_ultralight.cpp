@@ -2,6 +2,7 @@
 
 #include "pn532.h"
 #include "esphome/core/log.h"
+#include "esphome/core/hal.h"
 
 namespace esphome {
 namespace pn532 {
