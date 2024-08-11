@@ -174,10 +174,12 @@ bool PN532::write_mifare_ultralight_page_(uint8_t page_num, std::vector<uint8_t>
       page_num,
   });
   data.insert(data.end(), write_data.begin(), write_data.end());
+  uint32_t start = millis();
   if (!this->write_command_(data)) {
     ESP_LOGE(TAG, "Error writing page %u", page_num);
     return false;
   }
+  ESP_LOGD(TAG, "writing page %u took %ums", page_num, millis() - start);
 
   std::vector<uint8_t> response;
   if (!this->read_response(PN532_COMMAND_INDATAEXCHANGE, response)) {
