@@ -180,13 +180,13 @@ bool PN532::write_mifare_ultralight_page_(uint8_t page_num, std::vector<uint8_t>
     ESP_LOGE(TAG, "Error writing page %u", page_num);
     return false;
   }
-  ESP_LOGD(TAG, "writing page %u took %ums", page_num, millis() - start);
-
+  uint32_t middle = millis();
   std::vector<uint8_t> response;
   if (!this->read_response(PN532_COMMAND_INDATAEXCHANGE, response)) {
     ESP_LOGE(TAG, "Error writing page %u", page_num);
     return false;
   }
+  ESP_LOGD(TAG, "writing page %u took %u/%ums", page_num, middle - start, millis() - middle);
 
   return true;
 }
