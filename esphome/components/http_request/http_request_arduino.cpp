@@ -139,7 +139,11 @@ int HttpContainerArduino::read(uint8_t *buf, size_t max_len) {
   }
 
   int available_data = stream_ptr->available();
-  int bufsize = std::min(max_len, std::min(this->content_length - this->bytes_read_, (size_t) available_data));
+  int bufsize;
+  if (this->content_length < 0)
+    bufsize = std::min(max_len, (size_t) available_data);
+  else
+    bufsize = std::min(max_len, std::min(this->content_length - this->bytes_read_, (size_t) available_data));
 
   if (bufsize == 0) {
     this->duration_ms += (millis() - start);
