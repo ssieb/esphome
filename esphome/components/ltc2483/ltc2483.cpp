@@ -25,7 +25,7 @@ void LTC2483::loop() {
     return;
   uint8_t data[3];
   i2c::ErrorCode err = this->read(data, 3);
-  if (err == i2c::ERROR_NOT_ACKNOWLEDGED)
+  if ((err == i2c::ERROR_NOT_ACKNOWLEDGED) || (err == i2c::ERROR_TIMEOUT))
     return;  // not ready
   this->updating_ = false;
   if (err != i2c::NO_ERROR) {
