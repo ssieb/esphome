@@ -18,10 +18,13 @@ void LTC2483::update() {
   uint8_t data[3];
   this->read(data, 3);  // discard old data to start new conversion
   this->updating_ = true;
+  this->update_start_ = millis();
 }
 
 void LTC2483::loop() {
   if (!this->updating_)
+    return;
+  if (millis() - this->update_start_ < 200)
     return;
   uint8_t data[3];
   i2c::ErrorCode err = this->read(data, 3);
@@ -32,7 +35,8 @@ void LTC2483::loop() {
     ESP_LOGE(TAG, "Error reading data: %d", err);
     return;
   }
-  int32_t raw = (data[2] << 16) | (data[1] << 8) | data[0];
+  ESP_LOGV(TAG, "raw data: %02x%02x%02x", data[0], data[1], data[2]);
+  int32_t raw = (data[0] << 16) | (data[1] << 8) | data[2];
   if (((raw ^ (raw << 1)) & 0x800000) == 0) {
     if (raw & 0x800000) {
       ESP_LOGW(TAG, "voltage too high");
@@ -45,7 +49,7 @@ void LTC2483::loop() {
   raw ^= 0x8000000;
   if (raw & 0x800000)
     raw |= 0xff000000;  // sign-extend the value
-  float value = float(raw) / 0x800000 * this->vref_;
+  float value = float(raw) / 0x400000 * this->vref_;
   ESP_LOGV(TAG, "Got voltage=%.4fV", value);
   this->publish_state(value);
 }

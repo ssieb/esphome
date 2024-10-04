@@ -19,6 +19,7 @@ class LTC2483 : public sensor::Sensor, public i2c::I2CDevice, public PollingComp
  protected:
   float vref_;
   bool updating_{false};
+  uint32_t update_start_{0};
 };
 
 }  // namespace ltc2483
