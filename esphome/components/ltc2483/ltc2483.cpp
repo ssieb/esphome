@@ -50,7 +50,7 @@ void LTC2483::loop() {
   raw ^= 0x800000;
   if (raw & 0x800000)
     raw |= 0xff000000;  // sign-extend the value
-  float value = float(raw) / 0x400000 * this->vref_;
+  float value = float(raw) / 0x800000 * this->vref_;
   ESP_LOGV(TAG, "Got voltage=%.4fV", value);
   this->publish_state(value);
 }
