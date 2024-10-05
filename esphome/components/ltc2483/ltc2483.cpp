@@ -46,7 +46,7 @@ void LTC2483::loop() {
     this->publish_state(NAN);
     return;
   }
-  raw ^= 0x8000000;
+  raw ^= 0x800000;
   if (raw & 0x800000)
     raw |= 0xff000000;  // sign-extend the value
   float value = float(raw) / 0x400000 * this->vref_;
