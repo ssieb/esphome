@@ -253,18 +253,24 @@ def pixels_or_percent_validator(value):
 pixels_or_percent = LValidator(pixels_or_percent_validator, uint32, retmapper=literal)
 
 
-def zoom(value):
+def zoom_validator(value):
     value = cv.float_range(0.1, 10.0)(value)
     return int(value * 256)
 
 
-def angle(value):
+zoom = LValidator(zoom_validator, cg.float_, retmapper=literal)
+
+
+def angle_validator(value):
     """
     Validation for an angle in degrees, converted to an integer representing 0.1deg units
     :param value: The input in the range 0..360
     :return: An angle in 1/10 degree units.
     """
     return int(cv.float_range(0.0, 360.0)(cv.angle(value)) * 10)
+
+
+angle = LValidator(angle_validator, cg.float_, retmapper=literal)
 
 
 @schema_extractor("one_of")
