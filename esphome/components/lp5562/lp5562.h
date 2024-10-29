@@ -9,6 +9,7 @@ namespace lp5562 {
 class LP5562 : public Component, public i2c::I2CDevice {
  public:
   void dump_config() override;
+  void setup() override;
   float get_setup_priority() const override { return setup_priority::DATA; }
 };
 
