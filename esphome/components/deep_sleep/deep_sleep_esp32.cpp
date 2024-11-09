@@ -1,6 +1,7 @@
 #ifdef USE_ESP32
 #include "deep_sleep_component.h"
 #include "esphome/core/log.h"
+#include "driver/rtc_io.h"
 
 namespace esphome {
 namespace deep_sleep {
@@ -74,6 +75,7 @@ void DeepSleepComponent::deep_sleep_() {
       level = !level;
     }
     esp_sleep_enable_ext0_wakeup(gpio_num_t(this->wakeup_pin_->get_pin()), level);
+    rtc_gpio_hold_en(gpio_num_t(this->wakeup_pin_->get_pin()));
   }
   if (this->ext1_wakeup_.has_value()) {
     esp_sleep_enable_ext1_wakeup(this->ext1_wakeup_->mask, this->ext1_wakeup_->wakeup_mode);
