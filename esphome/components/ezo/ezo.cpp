@@ -7,9 +7,9 @@ namespace ezo {
 
 static const char *const TAG = "ezo.sensor";
 
-static const char *const EZO_COMMAND_TYPE_STRINGS[] = {"EZO_READ",  "EZO_LED",         "EZO_DEVICE_INFORMATION",
-                                                       "EZO_SLOPE", "EZO_CALIBRATION", "EZO_SLEEP",
-                                                       "EZO_I2C",   "EZO_T",           "EZO_CUSTOM",
+static const char *const EZO_COMMAND_TYPE_STRINGS[] = {"EZO_READ",    "EZO_LED",         "EZO_DEVICE_INFORMATION",
+                                                       "EZO_SLOPE",   "EZO_CALIBRATION", "EZO_SLEEP",
+                                                       "EZO_I2C",     "EZO_T",           "EZO_CUSTOM",
                                                        "EZO_INTERNAL"};
 
 static const char *const EZO_CALIBRATION_TYPE_STRINGS[] = {"LOW", "MID", "HIGH"};
@@ -121,7 +121,7 @@ void EZOSensor::loop() {
       if (!val.has_value()) {
         ESP_LOGW(TAG, "Can't convert '%s' to number!", payload.c_str());
       } else {
-        //this->publish_state(*val);
+        // this->publish_state(*val);
       }
       break;
     case EzoCommandType::EZO_LED:
@@ -153,7 +153,8 @@ void EZOSensor::loop() {
   }
 }
 
-void EZOSensor::add_command_(const std::string &command, EzoCommandType command_type, uint16_t delay_ms, std::function<void(std::string)> &&callback) {
+void EZOSensor::add_command_(const std::string &command, EzoCommandType command_type, uint16_t delay_ms,
+                             std::function<void(std::string)> &&callback) {
   std::unique_ptr<EzoCommand> ezo_command(new EzoCommand);
   ezo_command->command = command;
   ezo_command->command_type = command_type;
@@ -234,9 +235,7 @@ void EZOSensorSingle::dump_config() {
   this->dump_common_();
 }
 
-void EZOSensorSingle::handle_data_() {
-  this->publish_state(this->data_[0]);
-}
+void EZOSensorSingle::handle_data_() { this->publish_state(this->data_[0]); }
 
 void EZOSensorMulti::handle_data_() {
   int n = std::min(this->data_.size(), this->sensors_.size());
@@ -278,8 +277,7 @@ void EZOSensorEC::handle_data_() {
     this->specific_gravity_sensor_->publish_state(this->data_[3]);
 }
 
-void EZOSensorFLO::setup() {
-}
+void EZOSensorFLO::setup() {}
 
 void EZOSensorFLO::handle_data_() {
   if (this->data_.size() < 2) {
@@ -292,6 +290,22 @@ void EZOSensorFLO::handle_data_() {
     this->total_volume_sensor_->publish_state(this->data_[0]);
   if (this->flow_rate_sensor_ != nullptr)
     this->flow_rate_sensor_->publish_state(this->data_[1]);
+}
+
+void EZOSensorHum::handle_data_() {
+  if (this->data_.size() < 3) {
+    ESP_LOGW(TAG, "received only %d/3 values, resetting data selection", this->data_.size());
+    this->send_internal_("O,HUM,1");
+    this->send_internal_("O,T,1");
+    this->send_internal_("O,Dew,1");
+    return;
+  }
+  if (this->humidity_sensor_ != nullptr)
+    this->humidity_sensor_->publish_state(this->data_[0]);
+  if (this->temperature_sensor_ != nullptr)
+    this->temperature_sensor_->publish_state(this->data_[0]);
+  if (this->dewpoint_sensor_ != nullptr)
+    this->dewpoint_sensor_->publish_state(this->data_[0]);
 }
 
 }  // namespace ezo

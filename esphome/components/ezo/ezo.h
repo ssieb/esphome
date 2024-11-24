@@ -99,7 +99,8 @@ class EZOSensor : public PollingComponent, public i2c::I2CDevice {
   std::string device_name_;
   std::string version_;
 
-  void add_command_(const std::string &command, EzoCommandType command_type, uint16_t delay_ms = 300, std::function<void(std::string)> &&callback = nullptr);
+  void add_command_(const std::string &command, EzoCommandType command_type, uint16_t delay_ms = 300,
+                    std::function<void(std::string)> &&callback = nullptr);
   void send_internal_(const std::string &to_send, std::function<void(std::string)> &&callback = nullptr);
 
   void set_calibration_point_(EzoCalibrationType type, float value);
@@ -117,6 +118,7 @@ class EZOSensor : public PollingComponent, public i2c::I2CDevice {
 class EZOSensorSingle : public EZOSensor, public sensor::Sensor {
  public:
   void dump_config() override;
+
  protected:
   void handle_data_();
 };
@@ -124,6 +126,7 @@ class EZOSensorSingle : public EZOSensor, public sensor::Sensor {
 class EZOSensorMulti : public EZOSensor {
  public:
   void set_sensors(std::vector<sensor::Sensor *> sensors) { this->sensors_ = std::move(sensors); }
+
  protected:
   void handle_data_();
   std::vector<sensor::Sensor *> sensors_;
@@ -131,8 +134,9 @@ class EZOSensorMulti : public EZOSensor {
 
 class EZOSensorDO : public EZOSensor {
  public:
-  void set_mg_sensor(sensor::Sensor * sensor) { this->mg_sensor_ = sensor; }
-  void set_percent_sensor(sensor::Sensor * sensor) { this->percent_sensor_ = sensor; }
+  void set_mg_sensor(sensor::Sensor *sensor) { this->mg_sensor_ = sensor; }
+  void set_percent_sensor(sensor::Sensor *sensor) { this->percent_sensor_ = sensor; }
+
  protected:
   void handle_data_();
   sensor::Sensor *mg_sensor_{nullptr};
@@ -141,10 +145,11 @@ class EZOSensorDO : public EZOSensor {
 
 class EZOSensorEC : public EZOSensor {
  public:
-  void set_conductivity_sensor(sensor::Sensor * sensor) { this->conductivity_sensor_ = sensor; }
-  void set_tds_sensor(sensor::Sensor * sensor) { this->tds_sensor_ = sensor; }
-  void set_salinity_sensor(sensor::Sensor * sensor) { this->salinity_sensor_ = sensor; }
-  void set_specific_gravity_sensor(sensor::Sensor * sensor) { this->specific_gravity_sensor_ = sensor; }
+  void set_conductivity_sensor(sensor::Sensor *sensor) { this->conductivity_sensor_ = sensor; }
+  void set_tds_sensor(sensor::Sensor *sensor) { this->tds_sensor_ = sensor; }
+  void set_salinity_sensor(sensor::Sensor *sensor) { this->salinity_sensor_ = sensor; }
+  void set_specific_gravity_sensor(sensor::Sensor *sensor) { this->specific_gravity_sensor_ = sensor; }
+
  protected:
   void handle_data_();
   sensor::Sensor *conductivity_sensor_{nullptr};
@@ -156,16 +161,30 @@ class EZOSensorEC : public EZOSensor {
 class EZOSensorFLO : public EZOSensor {
  public:
   void setup() override;
-  void set_flow_rate_sensor(sensor::Sensor * sensor, uint8_t period) {
+  void set_flow_rate_sensor(sensor::Sensor *sensor, uint8_t period) {
     this->flow_rate_sensor_ = sensor;
     this->flow_rate_period_ = period;
   }
-  void set_total_volume_sensor(sensor::Sensor * sensor) { this->total_volume_sensor_ = sensor; }
+  void set_total_volume_sensor(sensor::Sensor *sensor) { this->total_volume_sensor_ = sensor; }
+
  protected:
   void handle_data_();
   sensor::Sensor *flow_rate_sensor_{nullptr};
   sensor::Sensor *total_volume_sensor_{nullptr};
   uint8_t flow_rate_period_;
+};
+
+class EZOSensorHum : public EZOSensor {
+ public:
+  void set_humidity_sensor(sensor::Sensor *sensor) { this->humidity_sensor_ = sensor; }
+  void set_temperature_sensor(sensor::Sensor *sensor) { this->temperature_sensor_ = sensor; }
+  void set_dewpoint_sensor(sensor::Sensor *sensor) { this->dewpoint_sensor_ = sensor; }
+
+ protected:
+  void handle_data_();
+  sensor::Sensor *humidity_sensor_{nullptr};
+  sensor::Sensor *temperature_sensor_{nullptr};
+  sensor::Sensor *dewpoint_sensor_{nullptr};
 };
 
 }  // namespace ezo

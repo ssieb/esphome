@@ -85,6 +85,7 @@ EZOSensorMulti = ezo_ns.class_("EZOSensorMulti", EZOSensor)
 EZOSensorDO = ezo_ns.class_("EZOSensorDO", EZOSensor)
 EZOSensorEC = ezo_ns.class_("EZOSensorEC", EZOSensor)
 EZOSensorFLO = ezo_ns.class_("EZOSensorFLO", EZOSensor)
+EZOSensorHum = ezo_ns.class_("EZOSensorHum", EZOSensor)
 EZOSensorRGB = ezo_ns.class_("EZOSensorRGB", EZOSensor)
 
 CustomTrigger = ezo_ns.class_(
@@ -230,6 +231,7 @@ CONFIG_SCHEMA = cv.typed_schema(
         ).extend(i2c.i2c_device_schema(104)),
         CONF_HUM: BASE_SCHEMA.extend(
             {
+                cv.GenerateID(): cv.declare_id(EZOSensorHum),
                 cv.Optional(CONF_HUMIDITY): sensor.sensor_schema(
                     accuracy_decimals=1,
                     device_class=DEVICE_CLASS_HUMIDITY,
@@ -333,6 +335,16 @@ async def to_code(config):
                 conf[CONF_UNIT_OF_MEASUREMENT] = UNIT_LITERS_PER_HOUR
             sens = await sensor.new_sensor(conf)
             cg.add(var.set_flow_rate_sensor(sens, ord(period[0])))
+    elif ezo_type == CONF_HUM:
+        if conf := config.get(CONF_HUMIDITY):
+            sens = await sensor.new_sensor(conf)
+            cg.add(var.set_humidity_sensor(sens))
+        if conf := config.get(CONF_TEMPERATURE):
+            sens = await sensor.new_sensor(conf)
+            cg.add(var.set_temperature_sensor(sens))
+        if conf := config.get(CONF_DEWPOINT):
+            sens = await sensor.new_sensor(conf)
+            cg.add(var.set_dewpoint_sensor(sens))
 
     for conf in config.get(CONF_ON_CUSTOM, []):
         trigger = cg.new_Pvariable(conf[CONF_TRIGGER_ID], var)
