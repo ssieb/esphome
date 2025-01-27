@@ -74,6 +74,8 @@ class UARTComponent {
   // Pure virtual method to block until all bytes have been written to the UART bus.
   virtual void flush() = 0;
 
+  virtual void send_break(uint8_t ms) {};
+
   // Sets the TX (transmit) pin for the UART bus.
   // @param tx_pin Pointer to the internal GPIO pin used for transmission.
   void set_tx_pin(InternalGPIOPin *tx_pin) { this->tx_pin_ = tx_pin; }

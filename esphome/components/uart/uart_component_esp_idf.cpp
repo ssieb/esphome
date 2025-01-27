@@ -4,8 +4,12 @@
 #include <cinttypes>
 #include "esphome/core/application.h"
 #include "esphome/core/defines.h"
+#include "esphome/core/hal.h"
 #include "esphome/core/helpers.h"
 #include "esphome/core/log.h"
+#include <driver/gpio.h>
+#include <esp_rom_gpio.h>
+#include <soc/uart_periph.h>
 
 #ifdef USE_LOGGER
 #include "esphome/components/logger/logger.h"
@@ -102,8 +106,12 @@ void IDFUARTComponent::setup() {
   int8_t rx = this->rx_pin_ != nullptr ? this->rx_pin_->get_pin() : -1;
 
   uint32_t invert = 0;
-  if (this->tx_pin_ != nullptr && this->tx_pin_->is_inverted())
-    invert |= UART_SIGNAL_TXD_INV;
+  if (this->tx_pin_ != nullptr) {
+    if (this->tx_pin_->is_inverted())
+      invert |= UART_SIGNAL_TXD_INV;
+    if (this->half_duplex_ && this->tx_pin_->is_inverted())
+      invert |= UART_SIGNAL_RXD_INV;
+  }
   if (this->rx_pin_ != nullptr && this->rx_pin_->is_inverted())
     invert |= UART_SIGNAL_RXD_INV;
 
@@ -115,14 +123,17 @@ void IDFUARTComponent::setup() {
   }
 
   if (this->half_duplex_) {
-    this->active_pin_ = tx;
-    this->idle_pin_ = rx;
-    err = uart_set_pin(this->uart_num_, this->idle_pin_, this->active_pin_, UART_PIN_NO_CHANGE, UART_PIN_NO_CHANGE);
+    gpio_num_t pin = static_cast<gpio_num_t>(tx);
+    //gpio_set_direction(pin, GPIO_MODE_INPUT);
+    ESP_LOGD(TAG, "invert: %d", invert);
+    err = uart_set_pin(this->uart_num_, UART_PIN_NO_CHANGE, tx, UART_PIN_NO_CHANGE, UART_PIN_NO_CHANGE);
+    gpio_set_pull_mode(pin, invert ? GPIO_PULLDOWN_ONLY : GPIO_PULLUP_ONLY);
     if (err != ESP_OK) {
       ESP_LOGW(TAG, "uart_set_pin failed: %s", esp_err_to_name(err));
       this->mark_failed();
       return;
     }
+    gpio_dump_io_configuration(stdout, 1ULL << pin);
   } else {
     err = uart_set_pin(this->uart_num_, tx, rx, UART_PIN_NO_CHANGE, UART_PIN_NO_CHANGE);
     if (err != ESP_OK) {
@@ -162,15 +173,13 @@ void IDFUARTComponent::load_settings(bool dump_config) {
 
 void IDFUARTComponent::dump_config() {
   ESP_LOGCONFIG(TAG, "UART Bus %u:", this->uart_num_);
-  ESP_LOGCONFIG(TAG, "  Half Duplex");
   if (this->half_duplex_) {
-    LOG_PIN("  Active Pin: ", tx_pin_);
-    LOG_PIN("  Idle Pin: ", rx_pin_);
+    LOG_PIN("  Half Duplex Pin: ", tx_pin_);
   } else {
     LOG_PIN("  TX Pin: ", tx_pin_);
     LOG_PIN("  RX Pin: ", rx_pin_);
   }
-  if (this->rx_pin_ != nullptr) {
+  if ((this->rx_pin_ != nullptr) | this->half_duplex_) {
     ESP_LOGCONFIG(TAG, "  RX Buffer Size: %u", this->rx_buffer_size_);
   }
   ESP_LOGCONFIG(TAG,
@@ -185,23 +194,15 @@ void IDFUARTComponent::dump_config() {
 void IDFUARTComponent::write_array(const uint8_t *data, size_t len) {
   xSemaphoreTake(this->lock_, portMAX_DELAY);
   if (this->half_duplex_) {
-    esp_err_t err = uart_set_pin(this->uart_num_, this->active_pin_, this->idle_pin_, UART_PIN_NO_CHANGE, UART_PIN_NO_CHANGE);
-    if (err != ESP_OK) {
-      ESP_LOGW(TAG, "uart_set_pin failed: %s", esp_err_to_name(err));
-      this->mark_failed();
-    }
-    uart_set_baudrate(this->uart_num_, this->baud_rate_ / 2);
-    uart_write_bytes(this->uart_num_, "", 1);
-    uart_wait_tx_idle_polling(this->uart_num_);
-    delay(10);
-    uart_set_baudrate(this->uart_num_, this->baud_rate_);
+    gpio_num_t pin = static_cast<gpio_num_t>(this->tx_pin_->get_pin());
+    esp_rom_gpio_connect_in_signal(GPIO_MATRIX_CONST_ZERO_INPUT, UART_PERIPH_SIGNAL(this->uart_num_, SOC_UART_RX_PIN_IDX), false);
+    esp_rom_gpio_connect_out_signal(pin, UART_PERIPH_SIGNAL(this->uart_num_, SOC_UART_TX_PIN_IDX), false, false);
     uart_write_bytes(this->uart_num_, data, len);
     uart_wait_tx_idle_polling(this->uart_num_);
-    err = uart_set_pin(this->uart_num_, this->idle_pin_, this->active_pin_, UART_PIN_NO_CHANGE, UART_PIN_NO_CHANGE);
-    if (err != ESP_OK) {
-      ESP_LOGW(TAG, "uart_set_pin failed: %s", esp_err_to_name(err));
-      this->mark_failed();
-    }
+    esp_rom_gpio_connect_out_signal(pin, SIG_GPIO_OUT_IDX, false, false);
+    esp_rom_gpio_connect_in_signal(pin, UART_PERIPH_SIGNAL(this->uart_num_, SOC_UART_RX_PIN_IDX), false);
+    gpio_set_direction(pin, GPIO_MODE_INPUT);
+    //gpio_set_pull_mode(pin, invert ? GPIO_PULLDOWN_ONLY : GPIO_PULLUP_ONLY);
   } else {
     uart_write_bytes(this->uart_num_, data, len);
   }
@@ -271,6 +272,19 @@ void IDFUARTComponent::flush() {
   xSemaphoreTake(this->lock_, portMAX_DELAY);
   uart_wait_tx_done(this->uart_num_, portMAX_DELAY);
   xSemaphoreGive(this->lock_);
+}
+
+void IDFUARTComponent::send_break(uint8_t ms) {
+  gpio_num_t pin = static_cast<gpio_num_t>(this->tx_pin_->get_pin());
+  bool invert = this->tx_pin_->is_inverted();
+  esp_rom_gpio_connect_in_signal(GPIO_MATRIX_CONST_ZERO_INPUT, UART_PERIPH_SIGNAL(this->uart_num_, SOC_UART_RX_PIN_IDX), false);
+  esp_rom_gpio_connect_out_signal(pin, SIG_GPIO_OUT_IDX, false, false);
+  gpio_set_level(pin, invert);
+  gpio_set_direction(pin, GPIO_MODE_OUTPUT);
+  delay(ms);
+  gpio_set_pull_mode(pin, invert ? GPIO_PULLDOWN_ONLY : GPIO_PULLUP_ONLY);
+  gpio_set_direction(pin, GPIO_MODE_INPUT);
+  esp_rom_gpio_connect_in_signal(pin, UART_PERIPH_SIGNAL(this->uart_num_, SOC_UART_RX_PIN_IDX), false);
 }
 
 void IDFUARTComponent::check_logger_conflict() {}
