@@ -87,14 +87,24 @@ def calc_b(value):
 
 def process_calibration(value):
     if isinstance(value, dict):
-        value = cv.Schema(
-            {
-                cv.Required(CONF_B_CONSTANT): cv.float_,
-                cv.Required(CONF_REFERENCE_TEMPERATURE): cv.temperature,
-                cv.Required(CONF_REFERENCE_RESISTANCE): cv.resistance,
-            }
-        )(value)
-        a, b, c = calc_b(value)
+        if CONF_A in value:
+            value = cv.Schema(
+                {
+                    cv.Required(CONF_A): cv.float_,
+                    cv.Required(CONF_B): cv.float_,
+                    cv.Required(CONF_C): cv.float_,
+                }
+            )(value)
+            a, b, c = value[CONF_A], value[CONF_B], value[CONF_C]
+        else:
+            value = cv.Schema(
+                {
+                    cv.Required(CONF_B_CONSTANT): cv.float_,
+                    cv.Required(CONF_REFERENCE_TEMPERATURE): cv.temperature,
+                    cv.Required(CONF_REFERENCE_RESISTANCE): cv.resistance,
+                }
+            )(value)
+            a, b, c = calc_b(value)
     elif isinstance(value, list):
         if len(value) != 3:
             raise cv.Invalid(
