@@ -25,7 +25,7 @@ void PCA9505Component::setup() {
   this->write_register_(INVERT_REG, 0);
   // All inputs at initialization
   this->config_ = 0;
-  // Invert mask as the part sees a 1 as an input
+  // Invert mask as a 1 means an input
   this->write_register_(CONFIG_REG, ~this->config_);
   // All outputs low
   this->output_bits_ = 0;
@@ -51,7 +51,7 @@ bool PCA9505Component::digital_read(uint8_t pin) {
   // have seen a read during the time esphome is running this loop. If we have,
   // we do an I2C bus transaction to get the latest value. If we haven't
   // we return a cached value which was read at the time loop() was called.
-  uint64_t mask = 1 << pin;
+  uint64_t mask = 1ul << pin;
   if (this->was_previously_read_ & mask)
     this->read_inputs_();  // Force a read of a new value
   // Indicate we saw a read request for this pin in case a
@@ -62,9 +62,9 @@ bool PCA9505Component::digital_read(uint8_t pin) {
 
 void PCA9505Component::digital_write(uint8_t pin, bool value) {
   if (value) {
-    this->output_bits_ |= (1 << pin);
+    this->output_bits_ |= (1ul << pin);
   } else {
-    this->output_bits_ &= ~(1 << pin);
+    this->output_bits_ &= ~(1ul << pin);
   }
   this->write_register_(OUTPUT_REG, this->output_bits_);
 }
@@ -72,10 +72,10 @@ void PCA9505Component::digital_write(uint8_t pin, bool value) {
 void PCA9505Component::pin_mode(uint8_t pin, gpio::Flags flags) {
   if (flags & gpio::FLAG_INPUT) {
     // Clear mode bit
-    this->config_ &= ~(1 << pin);
+    this->config_ &= ~(1ul << pin);
   } else if (flags & gpio::FLAG_OUTPUT) {
     // Set mode bit
-    this->config_ |= 1 << pin;
+    this->config_ |= 1ul << pin;
   }
   this->write_register_(CONFIG_REG, ~this->config_);
 }
