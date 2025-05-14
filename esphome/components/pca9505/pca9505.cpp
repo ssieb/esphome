@@ -57,6 +57,7 @@ bool PCA9505Component::digital_read(uint8_t pin) {
   // Indicate we saw a read request for this pin in case a
   // read happens later in the same loop.
   this->was_previously_read_ |= mask;
+  ESP_LOGD(TAG, "pin %d, inputs %0lx, mask %0lx", pin, this->input_bits_, mask);
   return this->input_bits_ & mask;
 }
 
