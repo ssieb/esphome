@@ -51,21 +51,21 @@ bool PCA9505Component::digital_read(uint8_t pin) {
   // have seen a read during the time esphome is running this loop. If we have,
   // we do an I2C bus transaction to get the latest value. If we haven't
   // we return a cached value which was read at the time loop() was called.
-  uint64_t mask = 1ul << pin;
+  uint64_t mask = 1ull << pin;
   if (this->was_previously_read_ & mask)
     this->read_inputs_();  // Force a read of a new value
   // Indicate we saw a read request for this pin in case a
   // read happens later in the same loop.
   this->was_previously_read_ |= mask;
-  ESP_LOGD(TAG, "pin %d, inputs %0lx, mask %0lx", pin, this->input_bits_, mask);
+  ESP_LOGD(TAG, "pin %d, inputs %0llx, mask %0llx", pin, this->input_bits_, mask);
   return this->input_bits_ & mask;
 }
 
 void PCA9505Component::digital_write(uint8_t pin, bool value) {
   if (value) {
-    this->output_bits_ |= (1ul << pin);
+    this->output_bits_ |= (1ull << pin);
   } else {
-    this->output_bits_ &= ~(1ul << pin);
+    this->output_bits_ &= ~(1ull << pin);
   }
   this->write_register_(OUTPUT_REG, this->output_bits_);
 }
@@ -73,10 +73,10 @@ void PCA9505Component::digital_write(uint8_t pin, bool value) {
 void PCA9505Component::pin_mode(uint8_t pin, gpio::Flags flags) {
   if (flags & gpio::FLAG_INPUT) {
     // Clear mode bit
-    this->config_ &= ~(1ul << pin);
+    this->config_ &= ~(1ull << pin);
   } else if (flags & gpio::FLAG_OUTPUT) {
     // Set mode bit
-    this->config_ |= 1ul << pin;
+    this->config_ |= 1ull << pin;
   }
   this->write_register_(CONFIG_REG, ~this->config_);
 }
@@ -85,7 +85,7 @@ bool PCA9505Component::read_inputs_() {
   if (this->is_failed())
     return false;
 
-  this->last_error_ = this->read_register(INPUT_REG, (uint8_t *) &this->input_bits_, 5, true);
+  this->last_error_ = this->read_register(INPUT_REG, (uint8_t *) &this->input_bits_, 5);
   if (this->last_error_ != i2c::ERROR_OK) {
     this->status_set_warning("read register failed");
     return false;
@@ -100,7 +100,7 @@ bool PCA9505Component::write_register_(uint8_t reg, uint64_t value) {
   if (this->is_failed())
     return false;
 
-  this->last_error_ = this->write_register(reg, (uint8_t *) &value, 5, true);
+  this->last_error_ = this->write_register(reg, (uint8_t *) &value, 5);
   if (this->last_error_ != i2c::ERROR_OK) {
     this->status_set_warning("write register failed");
     return false;
