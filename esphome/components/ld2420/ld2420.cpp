@@ -598,7 +598,7 @@ int LD2420Component::send_cmd_from_array(CmdFrameT frame) {
   this->cmd_reply_.ack = false;
   if (frame.command != CMD_RESTART)
     this->set_cmd_active_(true);  // Restart does not reply, thus no ack state required.
-  uint8_t retry = 3;
+  uint8_t retry = 1;
   while (retry) {
     frame.length = 0;
     uint16_t frame_data_bytes = frame.data_length + 2;  // Always add two bytes for the cmd size
