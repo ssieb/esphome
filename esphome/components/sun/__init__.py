@@ -14,8 +14,9 @@ from esphome.const import (
 )
 
 CODEOWNERS = ["@OttoWinter"]
-sun_ns = cg.esphome_ns.namespace("sun")
+MULTI_CONF = True
 
+sun_ns = cg.esphome_ns.namespace("sun")
 Sun = sun_ns.class_("Sun")
 SunTrigger = sun_ns.class_(
     "SunTrigger", cg.PollingComponent, automation.Trigger.template()
