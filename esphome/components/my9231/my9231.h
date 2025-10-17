@@ -12,11 +12,11 @@ namespace my9231 {
 class MY9231OutputComponent : public Component {
  public:
   class Channel;
-  void set_pin_di(GPIOPin *pin_di) {
+  void set_pin_di(InternalGPIOPin *pin_di) {
     pin_t_di_ = pin_di;
     this->pin_di_ = pin_di->to_isr();
   }
-  void set_pin_dcki(GPIOPin *pin_dcki) {
+  void set_pin_dcki(InternalGPIOPin *pin_dcki) {
     pin_t_dcki_ = pin_dcki;
     this->pin_dcki_ = pin_dcki->to_isr();
   }
@@ -57,9 +57,9 @@ class MY9231OutputComponent : public Component {
   void send_di_pulses_(uint8_t count);
   void send_dcki_pulses_(uint8_t count);
 
-  GPIOPin *pin_t_di_;
+  InternalGPIOPin *pin_t_di_;
   ISRInternalGPIOPin *pin_di_;
-  GPIOPin *pin_t_dcki_;
+  InternalGPIOPin *pin_t_dcki_;
   ISRInternalGPIOPin *pin_dcki_;
   uint8_t bit_depth_;
   uint16_t num_channels_;
