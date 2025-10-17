@@ -14,11 +14,11 @@ class MY9231OutputComponent : public Component {
   class Channel;
   void set_pin_di(GPIOPin *pin_di) {
     pin_t_di_ = pin_di;
-    this->pin_di_ = pin_di.to_isr();
+    this->pin_di_ = pin_di->to_isr();
   }
   void set_pin_dcki(GPIOPin *pin_dcki) {
     pin_t_dcki_ = pin_dcki;
-    this->pin_dcki_ = pin_dcki.to_isr();
+    this->pin_dcki_ = pin_dcki->to_isr();
   }
 
   void set_num_channels(uint16_t num_channels) { this->num_channels_ = num_channels; }

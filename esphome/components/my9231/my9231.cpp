@@ -59,8 +59,8 @@ void MY9231OutputComponent::setup() {
 }
 void MY9231OutputComponent::dump_config() {
   ESP_LOGCONFIG(TAG, "MY9231:");
-  LOG_PIN("  DI Pin: ", this->pin_di_);
-  LOG_PIN("  DCKI Pin: ", this->pin_dcki_);
+  LOG_PIN("  DI Pin: ", this->pin_t_di_);
+  LOG_PIN("  DCKI Pin: ", this->pin_t_dcki_);
   ESP_LOGCONFIG(TAG,
                 "  Total number of channels: %u\n"
                 "  Number of chips: %u\n"
