@@ -104,22 +104,22 @@ IRAM_ATTR void MY9231OutputComponent::init_chips_(uint8_t command) {
 }
 IRAM_ATTR void MY9231OutputComponent::write_word_(uint16_t value, uint8_t bits) {
   for (uint8_t i = bits; i > 0; i--) {
-    this->pin_di_->digital_write(value & (1 << (i - 1)));
-    this->pin_dcki_->digital_write(!this->pin_dcki_->digital_read());
+    this->pin_di_.digital_write(value & (1 << (i - 1)));
+    this->pin_dcki_.digital_write(!this->pin_dcki_.digital_read());
   }
 }
 IRAM_ATTR void MY9231OutputComponent::send_di_pulses_(uint8_t count) {
   delayMicroseconds(12);
   for (uint8_t i = 0; i < count; i++) {
-    this->pin_di_->digital_write(true);
-    this->pin_di_->digital_write(false);
+    this->pin_di_.digital_write(true);
+    this->pin_di_.digital_write(false);
   }
 }
 IRAM_ATTR void MY9231OutputComponent::send_dcki_pulses_(uint8_t count) {
   delayMicroseconds(12);
   for (uint8_t i = 0; i < count; i++) {
-    this->pin_dcki_->digital_write(true);
-    this->pin_dcki_->digital_write(false);
+    this->pin_dcki_.digital_write(true);
+    this->pin_dcki_.digital_write(false);
   }
 }
 

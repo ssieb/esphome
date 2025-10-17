@@ -58,9 +58,9 @@ class MY9231OutputComponent : public Component {
   void send_dcki_pulses_(uint8_t count);
 
   InternalGPIOPin *pin_t_di_;
-  ISRInternalGPIOPin *pin_di_;
+  ISRInternalGPIOPin pin_di_;
   InternalGPIOPin *pin_t_dcki_;
-  ISRInternalGPIOPin *pin_dcki_;
+  ISRInternalGPIOPin pin_dcki_;
   uint8_t bit_depth_;
   uint16_t num_channels_;
   uint8_t num_chips_;
