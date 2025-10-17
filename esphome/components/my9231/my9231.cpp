@@ -28,10 +28,10 @@ static const uint8_t MY9231_CMD_SCATTER_APDM = 0x0 << 0;
 static const uint8_t MY9231_CMD_SCATTER_PWM = 0x1 << 0;
 
 void MY9231OutputComponent::setup() {
-  this->pin_di_->setup();
-  this->pin_di_->digital_write(false);
-  this->pin_dcki_->setup();
-  this->pin_dcki_->digital_write(false);
+  this->pin_t_di_->setup();
+  this->pin_t_di_->digital_write(false);
+  this->pin_t_dcki_->setup();
+  this->pin_t_dcki_->digital_write(false);
   this->pwm_amounts_.resize(this->num_channels_, 0);
   uint8_t command = 0;
   if (this->bit_depth_ <= 8) {
@@ -89,7 +89,7 @@ void MY9231OutputComponent::set_channel_value_(uint8_t channel, uint16_t value) 
   }
   this->pwm_amounts_[index] = value;
 }
-void MY9231OutputComponent::init_chips_(uint8_t command) {
+IRAM_ATTR void MY9231OutputComponent::init_chips_(uint8_t command) {
   // Send 12 DI pulse. After 6 falling edges, the duty data are stored
   // and after 12 rising edges the command mode is activated.
   this->send_di_pulses_(12);
@@ -102,20 +102,20 @@ void MY9231OutputComponent::init_chips_(uint8_t command) {
   this->send_di_pulses_(16);
   delayMicroseconds(12);
 }
-void MY9231OutputComponent::write_word_(uint16_t value, uint8_t bits) {
+IRAM_ATTR void MY9231OutputComponent::write_word_(uint16_t value, uint8_t bits) {
   for (uint8_t i = bits; i > 0; i--) {
     this->pin_di_->digital_write(value & (1 << (i - 1)));
     this->pin_dcki_->digital_write(!this->pin_dcki_->digital_read());
   }
 }
-void MY9231OutputComponent::send_di_pulses_(uint8_t count) {
+IRAM_ATTR void MY9231OutputComponent::send_di_pulses_(uint8_t count) {
   delayMicroseconds(12);
   for (uint8_t i = 0; i < count; i++) {
     this->pin_di_->digital_write(true);
     this->pin_di_->digital_write(false);
   }
 }
-void MY9231OutputComponent::send_dcki_pulses_(uint8_t count) {
+IRAM_ATTR void MY9231OutputComponent::send_dcki_pulses_(uint8_t count) {
   delayMicroseconds(12);
   for (uint8_t i = 0; i < count; i++) {
     this->pin_dcki_->digital_write(true);
