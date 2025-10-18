@@ -32,10 +32,10 @@ class TemplateFan final : public Component, public fan::Fan {
   bool has_oscillating_{false};
   bool has_direction_{false};
   int speed_count_{0};
-  Trigger<> *turn_on_trigger_;
-  Trigger<> *turn_off_trigger_;
-  Trigger<int> *speed_trigger_;
-  Trigger<fan::FanDirection> *direction_trigger_;
+  Trigger<> *turn_on_trigger_ = new Trigger<>();
+  Trigger<> *turn_off_trigger_ = new Trigger<>();
+  Trigger<int> *speed_trigger_ = new Trigger<int>();
+  Trigger<fan::FanDirection> *direction_trigger_ = new Trigger<fan::FanDirection>();
   fan::FanTraits traits_;
 };
 
