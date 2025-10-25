@@ -22,20 +22,22 @@ void TemplateFan::control(const fan::FanCall &call) {
   auto call_state = call.get_state();
   if (call_state.has_value()) {
     bool state = *call_state;
+    if (state != this->state) {
+      if (state) {
+        this->turn_on_trigger_->trigger();
+      } else {
+        this->turn_off_trigger_->trigger();
+      }
+    }
     if (this->optimistic_)
       this->state = state;
-    if (state) {
-      this->turn_on_trigger_->trigger();
-    } else {
-      this->turn_off_trigger_->trigger();
-    }
   }
   auto call_speed = call.get_speed();
   if (call_speed.has_value() && (this->speed_count_ > 0)) {
     int speed = *call_speed;
+    this->speed_trigger_->trigger(speed);
     if (this->optimistic_)
       this->speed = speed;
-    this->speed_trigger_->trigger(speed);
   }
   auto call_oscillating = call.get_oscillating();
   if (call_oscillating.has_value() && this->has_oscillating_) {
@@ -46,6 +48,7 @@ void TemplateFan::control(const fan::FanCall &call) {
   auto call_direction = call.get_direction();
   if (call_direction.has_value() && this->has_direction_) {
     fan::FanDirection direction = *call_direction;
+    this->direction_trigger_->trigger(direction);
     if (this->optimistic_)
       this->direction = direction;
   }
