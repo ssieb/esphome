@@ -75,8 +75,9 @@ void BMP280Component::setup() {
   }
   if (chip_id != 0x58) {
     this->error_code_ = WRONG_CHIP_ID;
-    this->mark_failed(BMP280_ERROR_WRONG_CHIP_ID);
-    return;
+    ESP_LOGE(TAG, "got chip id 0x%02x", chip_id);
+    // this->mark_failed(BMP280_ERROR_WRONG_CHIP_ID);
+    // return;
   }
 
   // Send a soft reset.
