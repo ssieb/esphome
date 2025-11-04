@@ -19,11 +19,13 @@ void TemplateFan::setup() {
 void TemplateFan::dump_config() { LOG_FAN("", "Template Fan", this); }
 
 void TemplateFan::control(const fan::FanCall &call) {
+  bool turning_on = false;
   auto call_state = call.get_state();
   if (call_state.has_value()) {
     bool state = *call_state;
     if (state != this->state) {
       if (state) {
+        turning_on = true;
         this->turn_on_trigger_->trigger();
       } else {
         this->turn_off_trigger_->trigger();
@@ -33,8 +35,8 @@ void TemplateFan::control(const fan::FanCall &call) {
       this->state = state;
   }
   auto call_speed = call.get_speed();
-  if (call_speed.has_value() && (this->speed_count_ > 0)) {
-    int speed = *call_speed;
+  if ((this->speed_count_ > 0) && (call_speed.has_value() || turning_on)) {
+    int speed = call.get_speed().has_value() ? *call_speed : this->speed;
     this->speed_trigger_->trigger(speed);
     if (this->optimistic_)
       this->speed = speed;

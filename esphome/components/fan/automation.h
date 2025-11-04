@@ -112,6 +112,13 @@ template<typename... Ts> class FanIsOffCondition final : public Condition<Ts...>
   Fan *state_;
 };
 
+class FanControlTrigger final : public Trigger<FanCall &> {
+ public:
+  FanControlTrigger(Fan *fan) {
+    fan->add_on_control_callback([this](FanCall &x) { this->trigger(x); });
+  }
+};
+
 class FanStateTrigger final : public Trigger<Fan *> {
  public:
   FanStateTrigger(Fan *state) : fan_(state) {

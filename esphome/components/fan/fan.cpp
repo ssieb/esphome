@@ -60,6 +60,7 @@ FanCall &FanCall::set_preset_mode(const char *preset_mode, size_t len) {
 
 void FanCall::perform() {
   ESP_LOGV(TAG, "'%s' - Setting:", this->parent_.get_name().c_str());
+  this->parent_.control_callback_.call(*this);
   this->validate_();
   if (this->binary_state_.has_value()) {
     ESP_LOGV(TAG, "  State: %s", ONOFF(*this->binary_state_));
@@ -158,6 +159,7 @@ FanCall Fan::turn_off() { return this->make_call().set_state(false); }
 FanCall Fan::toggle() { return this->make_call().set_state(!this->state); }
 FanCall Fan::make_call() { return FanCall(*this); }
 
+<<<<<<< HEAD
 const char *Fan::find_preset_mode_(const char *preset_mode) {
   return this->find_preset_mode_(preset_mode, preset_mode ? strlen(preset_mode) : 0);
 }
@@ -220,6 +222,13 @@ void Fan::apply_preset_mode_(const FanCall &call) {
   }
 }
 
+=======
+void Fan::add_on_control_callback(std::function<void(FanCall &)> &&callback) {
+  this->control_callback_.add(std::move(callback));
+}
+
+void Fan::add_on_state_callback(std::function<void()> &&callback) { this->state_callback_.add(std::move(callback)); }
+>>>>>>> 79cb949fe (add on_control)
 void Fan::publish_state() {
   auto traits = this->get_traits();
 

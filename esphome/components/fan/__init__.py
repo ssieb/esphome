@@ -12,6 +12,7 @@ from esphome.const import (
     CONF_ID,
     CONF_MQTT_ID,
     CONF_OFF_SPEED_CYCLE,
+    CONF_ON_CONTROL,
     CONF_ON_DIRECTION_SET,
     CONF_ON_OSCILLATING_SET,
     CONF_ON_PRESET_SET,
@@ -68,6 +69,9 @@ TurnOffAction = fan_ns.class_("TurnOffAction", automation.Action)
 ToggleAction = fan_ns.class_("ToggleAction", automation.Action)
 CycleSpeedAction = fan_ns.class_("CycleSpeedAction", automation.Action)
 
+FanControlTrigger = fan_ns.class_(
+    "FanControlTrigger", automation.Trigger.template(FanCall.operator("ref"))
+)
 FanStateTrigger = fan_ns.class_(
     "FanStateTrigger", automation.Trigger.template(Fan.operator("ptr"))
 )
@@ -121,6 +125,11 @@ _FAN_SCHEMA = (
             ),
             cv.Optional(CONF_SPEED_COMMAND_TOPIC): cv.All(
                 cv.requires_component("mqtt"), cv.subscribe_topic
+            ),
+            cv.Optional(CONF_ON_CONTROL): automation.validate_automation(
+                {
+                    cv.GenerateID(CONF_TRIGGER_ID): cv.declare_id(FanControlTrigger),
+                }
             ),
             cv.Optional(CONF_ON_STATE): automation.validate_automation(
                 {
@@ -272,6 +281,11 @@ async def setup_fan_core_(var, config):
     if web_server_config := config.get(CONF_WEB_SERVER):
         await web_server.add_entity_config(var, web_server_config)
 
+    for conf in config.get(CONF_ON_CONTROL, []):
+        trigger = cg.new_Pvariable(conf[CONF_TRIGGER_ID], var)
+        await automation.build_automation(
+            trigger, [(FanCall.operator("ref"), "x")], conf
+        )
     for conf in config.get(CONF_ON_STATE, []):
         trigger = cg.new_Pvariable(conf[CONF_TRIGGER_ID], var)
         await automation.build_automation(trigger, [(Fan.operator("ptr"), "x")], conf)

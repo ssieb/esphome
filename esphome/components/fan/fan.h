@@ -120,6 +120,14 @@ class Fan : public EntityBase {
   FanCall toggle();
   FanCall make_call();
 
+  /**
+   * Add a callback for the fan device configuration; each time the configuration parameters of a fan device
+   * is updated (using perform() of a FanCall), this callback will be called, before any on_state callback.
+   *
+   * @param callback The callback to call.
+   */
+  void add_on_control_callback(std::function<void(FanCall &)> &&callback);
+
   /// Register a callback that will be called each time the state changes.
   template<typename F> void add_on_state_callback(F &&callback) {
     this->state_callback_.add(std::forward<F>(callback));
@@ -182,6 +190,7 @@ class Fan : public EntityBase {
   }
 
   LazyCallbackManager<void()> state_callback_{};
+  LazyCallbackManager<void(FanCall &)> control_callback_{};
   ESPPreferenceObject rtc_;
   FanRestoreMode restore_mode_;
 
