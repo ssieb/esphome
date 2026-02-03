@@ -17,6 +17,7 @@ static const char *const TAG = "ens160";
 static const uint8_t ENS160_BOOTING = 10;
 
 static const uint16_t ENS160_PART_ID = 0x0160;
+static const uint16_t ENS161_PART_ID = 0x0160;
 
 static const uint8_t ENS160_REG_PART_ID = 0x00;
 static const uint8_t ENS160_REG_OPMODE = 0x10;
@@ -56,7 +57,7 @@ void ENS160Component::setup() {
     this->mark_failed();
     return;
   }
-  if (part_id != ENS160_PART_ID) {
+  if ((part_id != ENS160_PART_ID) && (part_id != ENS161_PART_ID)) {
     this->error_code_ = INVALID_ID;
     this->mark_failed();
     return;
