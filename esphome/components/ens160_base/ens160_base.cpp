@@ -17,7 +17,7 @@ static const char *const TAG = "ens160";
 static const uint8_t ENS160_BOOTING = 10;
 
 static const uint16_t ENS160_PART_ID = 0x0160;
-static const uint16_t ENS161_PART_ID = 0x0160;
+static const uint16_t ENS161_PART_ID = 0x0161;
 
 static const uint8_t ENS160_REG_PART_ID = 0x00;
 static const uint8_t ENS160_REG_OPMODE = 0x10;
