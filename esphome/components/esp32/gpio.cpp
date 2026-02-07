@@ -128,6 +128,8 @@ void ESP32InternalGPIOPin::pin_mode(gpio::Flags flags) {
   gpio_set_pull_mode(this->get_pin_num(), pull_mode);
 }
 
+void ESP32InternalGPIOPin::enable_od() { gpio_hal_od_enable(&GPIO_HAL, this->get_pin_num()); }
+
 bool ESP32InternalGPIOPin::digital_read() {
   return bool(gpio_get_level(this->get_pin_num())) != this->pin_flags_.inverted;
 }

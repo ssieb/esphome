@@ -1,7 +1,8 @@
+#ifdef USE_ESP32
+
 #include "ledc_output.h"
 #include "esphome/core/log.h"
-
-#ifdef USE_ESP32
+#include "esphome/components/esp32/gpio.h"
 
 #include <driver/ledc.h>
 #include <cinttypes>
@@ -144,6 +145,8 @@ void LEDCOutput::setup() {
   chan_conf.duty = this->inverted_ == this->pin_->is_inverted() ? 0 : (1U << this->bit_depth_);
   chan_conf.hpoint = hpoint;
   ledc_channel_config(&chan_conf);
+  if (this->pin_->get_flags() & gpio::FLAG_OPEN_DRAIN)
+    static_cast<esp32::ESP32InternalGPIOPin *>(this->pin_)->enable_od();
   this->initialized_ = true;
   this->status_clear_error();
 }

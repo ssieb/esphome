@@ -22,6 +22,8 @@ class ESP32InternalGPIOPin : public InternalGPIOPin {
 
   void setup() override;
   void pin_mode(gpio::Flags flags) override;
+  // required to avoid resetting the matrix
+  void enable_od();
   bool digital_read() override;
   void digital_write(bool value) override;
   size_t dump_summary(char *buffer, size_t len) const override;
