@@ -28,4 +28,4 @@ py7zr==1.1.3
 pyparsing >= 3.3.2
 
 # For autocompletion
-argcomplete>=3.6.3
+argcomplete>=3.7.0
